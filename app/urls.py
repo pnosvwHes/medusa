@@ -13,6 +13,5 @@ urlpatterns = [
     path("sale/save-payments/", save_payments, name="save_payments"),
     path("sale/payment-data/", get_payment_data, name="get_payment_data"),
     path("transactions/new/", TransactionCreateView.as_view(), name="transaction_create"),
-    path('get-banks/', get_banks, name='get_banks'),
     path("ledger-report/", LedgerReportView.as_view(), name="ledger_report"),
 ]

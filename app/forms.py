@@ -1,91 +1,91 @@
 from django import forms
 from app.models import PaymentMethod, Sale,Customer,Personnel,Work,Transaction
-from jalali_date.fields import SplitJalaliDateTimeField
-from jalali_date.widgets import AdminSplitJalaliDateTime
+from jalali_date.fields import JalaliDateField
+from jalali_date.widgets import AdminJalaliDateWidget
 from django.utils.formats import localize
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.validators import MinValueValidator
+import datetime
 
-class CreateSaleForm(forms.Form):
-
-
-    customer = forms.ChoiceField(label="مشتری")
-    personnel = forms.ChoiceField(label="پرسنل")
-    work = forms.ChoiceField(label="خدمت")
-    price = forms.IntegerField(label="قیمت")
-    date = SplitJalaliDateTimeField(
-        label="تاریخ و ساعت",
-        widget=AdminSplitJalaliDateTime,
+class SaleForm(forms.ModelForm):
+    date = JalaliDateField(
+        label='تاریخ',
+        widget=AdminJalaliDateWidget(
+            attrs={'class': 'border p-2 rounded w-full'}
+        ),
+        initial=timezone.now().date(),  
     )
-    def __init__(self, *args, **kwargs):
-        super(CreateSaleForm, self).__init__(*args, **kwargs)
- 
-        self.fields['customer'].choices = [(c.id, str(c)) for c in Customer.objects.all()]
-        self.fields['personnel'].choices = [(p.id, str(p)) for p in Personnel.objects.all()]
-        self.fields['work'].choices = [(w.id, str(w)) for w in Work.objects.all()]
+    time = forms.TimeField(
+        label='ساعت',
+        widget=forms.TimeInput(
+            attrs={'class': 'border p-2 rounded w-full', 'type': 'time'}
+        ),
+        initial=timezone.now().time().strftime('%H:%M'),
+    )
+
+    class Meta:
+        model = Sale
+        fields = ['customer', 'personnel', 'work', 'price']  # حذف date از اینجا
+        labels = {
+            'customer': 'مشتری',
+            'personnel': 'پرسنل',
+            'work': 'خدمت',
+            'price': 'مبلغ',
+        }
+        widgets = {
+            'customer': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'personnel': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'work': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'price': forms.NumberInput(attrs={'class': 'border p-2 rounded w-full'}),
+        }
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        jdate = self.cleaned_data['date']
+        time = self.cleaned_data['time']
+
+        g_date = jdate.to_gregorian()
+        instance.date = datetime.datetime.combine(g_date, time)
+
+        if commit:
+            instance.save()
+        return instance
 
 
 
+
+from django import forms
+from .models import Transaction, PaymentMethod, TransactionType, Bank
+from django.utils import timezone
+from jalali_date.fields import JalaliDateTimeField
+from jalali_date.widgets import AdminJalaliDateWidget
+
+from django.forms.widgets import Select
+
+class PaymentMethodSelect(Select):
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        if value:
+            try:
+                pm = PaymentMethod.objects.get(pk=value)
+                option['attrs']['data-requires-bank'] = str(pm.requires_bank).lower()
+            except PaymentMethod.DoesNotExist:
+                option['attrs']['data-requires-bank'] = 'false'
+        return option
 
 
 class TransactionForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        
-        # Format amount field with intcomma
-        if 'amount' in self.initial:
-            self.initial['amount'] = localize(self.initial['amount'], use_l10n=True)
-        
-        # Make bank field required if payment method requires bank
-        if 'source_type' in self.data:
-            try:
-                payment_method_id = int(self.data.get('source_type'))
-                payment_method = PaymentMethod.objects.get(id=payment_method_id)
-                if payment_method.requires_bank:
-                    self.fields['bank'].required = True
-            except (ValueError, PaymentMethod.DoesNotExist):
-                pass
-    
-    date = forms.DateTimeField(
-        label=_("Date"),
-        input_formats=['%Y-%m-%d %H:%M:%S'],
-        widget=forms.DateTimeInput(attrs={
-            'class': 'form-control',
-            'data-jdp': '',
-            'placeholder': _('Select date and time')
-        }),
-        initial=timezone.now
-    )
-    
-    amount = forms.DecimalField(
-        label=_("Amount"),
-        max_digits=12,
-        decimal_places=0,
-        validators=[MinValueValidator(1)],
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'data-mask': 'number',
-            'placeholder': _('Enter amount')
-        })
-    )
-    
+    date = JalaliDateField(widget=AdminJalaliDateWidget, initial=timezone.now)
+
     class Meta:
         model = Transaction
-        fields = ['transaction_type', 'date', 'source_type', 'bank', 'amount', 'description']
+        fields = ['date', 'transaction_type', 'source_type', 'bank', 'amount', 'description']
         widgets = {
             'transaction_type': forms.Select(attrs={'class': 'form-control'}),
-            'source_type': forms.Select(attrs={'class': 'form-control'}),
-            'bank': forms.Select(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'source_type': PaymentMethodSelect(attrs={'class': 'form-control', 'id': 'id_source_type'}),
+            'bank': forms.Select(attrs={'class': 'form-control', 'id': 'id_bank'}),
+            'amount': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_amount'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        source_type = cleaned_data.get('source_type')
-        bank = cleaned_data.get('bank')
-        
-        if source_type and source_type.requires_bank and not bank:
-            self.add_error('bank', _("This payment method requires selecting a bank."))
-        
-        return cleaned_data

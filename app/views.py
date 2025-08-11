@@ -12,6 +12,7 @@ from jalali_date import datetime2jalali
 from django.db.models import Sum
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime, timedelta
+from app.forms import *
 
 
 def home (request):
@@ -191,29 +192,12 @@ def save_payments(request):
 class TransactionCreateView(CreateView):
     model = Transaction
     form_class = TransactionForm
-    template_name = 'transactions/transaction_form.html'
-    success_url = reverse_lazy('transactions:list')  # Adjust to your URL
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = "Create New Transaction"
-        return context
+    template_name = 'new_transaction.html'
+    success_url = reverse_lazy('transaction_list')  
 
-def get_banks(request):
-    """AJAX view to get banks for a payment method"""
-    payment_method_id = request.GET.get('payment_method_id')
-    banks = []
-    
-    if payment_method_id:
-        try:
-            payment_method = PaymentMethod.objects.get(id=payment_method_id)
-            if payment_method.requires_bank:
-                banks = Bank.objects.all().values('id', 'name')
-        except PaymentMethod.DoesNotExist:
-            pass
-    
-    return JsonResponse(list(banks), safe=False)        
-
+    def form_valid(self, form):
+        messages.success(self.request, "تراکنش با موفقیت ثبت شد.")
+        return super().form_valid(form)
 
 
 class LedgerReportView(ListView):

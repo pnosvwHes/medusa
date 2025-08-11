@@ -247,6 +247,12 @@
   .col-span-2 {
     grid-column: span 2 / span 2;
   }
+  .row-1 {
+    grid-row: 1;
+  }
+  .row-2 {
+    grid-row: 2;
+  }
   .container {
     width: 100%;
     @media (width >= 40rem) {
@@ -393,6 +399,9 @@
   }
   .flex-1 {
     flex: 1;
+  }
+  .flex-grow-1 {
+    flex-grow: 1;
   }
   .table-auto {
     table-layout: auto;
