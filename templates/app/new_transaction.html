@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% load static i18n humanize %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'persian-datepicker/persian-datepicker.min.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">{{ title }}</h3>
+    </div>
+    <div class="card-body">
+        <form method="post" id="transaction-form">
+            {% csrf_token %}
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
+                        {{ form.date }}
+                        {% if form.date.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.date.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.transaction_type.id_for_label }}">{{ form.transaction_type.label }}</label>
+                        {{ form.transaction_type }}
+                        {% if form.transaction_type.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.transaction_type.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.source_type.id_for_label }}">{{ form.source_type.label }}</label>
+                        {{ form.source_type }}
+                        {% if form.source_type.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.source_type.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>
+                        <div class="input-group">
+                            {{ form.amount }}
+                            <div class="input-group-append">
+                                <span class="input-group-text">ریال</span>
+                            </div>
+                        </div>
+                        {% if form.amount.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.amount.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3" id="bank-row" style="display: none;">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.bank.id_for_label }}">{{ form.bank.label }}</label>
+                        {{ form.bank }}
+                        {% if form.bank.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.bank.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.description.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'persian-datepicker/persian-datepicker.min.js' %}"></script>
+<script src="{% static 'persian-datepicker/persian-date.js' %}"></script>
+<script>
+$(document).ready(function() {
+    // Initialize Persian DatePicker
+    $('[data-jdp]').persianDatepicker({
+        format: 'YYYY-MM-DD HH:mm:ss',
+        observer: true,
+        timePicker: {
+            enabled: true
+        }
+    });
+    
+    // Format amount with intcomma
+    $('#id_amount').on('blur', function() {
+        let value = $(this).val().replace(/,/g, '');
+        if (!isNaN(value) && value !== '') {
+            $(this).val(parseInt(value).toLocaleString('en-US'));
+        }
+    });
+    
+    // Show/hide bank field based on payment method
+    $('#id_source_type').change(function() {
+        let paymentMethodId = $(this).val();
+        if (paymentMethodId) {
+            $.ajax({
+                url: "{% url 'transactions:get_banks' %}",
+                data: {
+                    'payment_method_id': paymentMethodId
+                },
+                dataType: 'json',
+                success: function(data) {
+                    if (data.length > 0) {
+                        $('#bank-row').show();
+                        $('#id_bank').prop('required', true);
+                    } else {
+                        $('#bank-row').hide();
+                        $('#id_bank').prop('required', false);
+                        $('#id_bank').val('');
+                    }
+                }
+            });
+        }
+    });
+    
+    // Trigger change event on page load if payment method is selected
+    if ($('#id_source_type').val()) {
+        $('#id_source_type').trigger('change');
+    }
+});
+</script>
+{% endblock %}

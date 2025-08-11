@@ -1,0 +1,68 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+
+{% block title %}لیست مشتریان{% endblock %}
+ 
+{% block content %}
+
+ <div class="flex justify-end m-4 gap-4">
+    
+    <form method="GET">
+        <a class="button secondary gap-3" type="submit" href="{% url 'customers' %}">حذف جستجو</a>
+        <input class="input secondary" type="search" name="filter" placeholder="تایپ عبارت جستجو" value="{{ request.GET.filter }}" >
+        <button class="button secondary gap-3" type="submit">جستجو</button>
+        
+    </form>
+    <a href="{% url 'new_customer' %}" class="bottun primary px-4 py-2 rounded-md ">مشتری جدید</a>
+  </div>
+  <h1 class="flex justify-center text-2xl font-semibold mb-4">فهرست مشتریان</h1>
+ 
+  <div class="overflow-x-auto m-4">
+    <table id="customerTable" class="table-auto w-full border-collapse text-right">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="text-center border px-4 py-2">نام</th>
+          <th class="text-center border px-4 py-2">موبایل</th>
+          <th class="text-center border px-4 py-2">تعداد فاکتورها</th>
+          <th class="text-center border px-4 py-2">عملیات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for customer in customers %}
+        <tr> <td class="text-center border px-4 py-2">{{ customer.name }}</td>
+          <td class="text-center border px-4 py-2">{{ customer.mobile }}</td>
+          <td class="text-center border px-4 py-2">{{ customer.sale_count }}</td>
+          <td class="text-center border px-4 py-2 space-x-2 space-x-reverse">
+<a href="{% url 'delete_customer' customer.id %}" class="text-red-600 hover:underline">حذف</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="text-center text-gray-500 py-4">مشتری‌ای یافت نشد.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+ 
+{% block extra_scripts %}
+<script>
+  $(document).ready(function() {
+    $('#customerTable').DataTable({
+      language: {
+        search: "جستجو:",
+        lengthMenu: "نمایش _MENU_ رکورد",
+        info: "نمایش _START_ تا _END_ از _TOTAL_",
+        infoEmpty: "هیچ رکوردی وجود ندارد",
+        infoFiltered: "(فیلتر شده از _MAX_ رکورد)",
+        paginate: {
+          previous: "قبلی",
+          next: "بعدی"
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

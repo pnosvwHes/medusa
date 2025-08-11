@@ -1,0 +1,11 @@
+{% extends "app/base.html" %}
+
+{% block content %}
+    <h1>ویرایش فاکتور</h1>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">ذخیره</button>
+    </form>
+    <a href="{% url 'home' %}"> کنسل </a>
+{% endblock content %}

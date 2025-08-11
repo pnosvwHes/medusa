@@ -1,0 +1,65 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div>
+<form method="get" class="flex justify-center items-center gap-4">
+    <input type="text" 
+        id="jalali-datepicker" 
+        name="date" 
+        value="{{ selected_jalali_date }}"
+        class="border p-2 rounded text-center"
+        autocomplete="off">
+    <button type="submit" 
+            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        نمایش
+    </button>
+</div>
+
+<div class="overflow-x-auto">
+    <table class="table-auto w-full border border-gray-300 text-center rounded-lg shadow">
+        <thead class="bg-gray-100">
+            <tr>
+                <th class="px-4 py-2">#</th>
+                <th class="px-4 py-2">مشتری</th>
+                <th class="px-4 py-2">پرسنل</th>
+                <th class="px-4 py-2">خدمت</th>
+                <th class="px-4 py-2">مبلغ</th>
+                <th class="px-4 py-2">ساعت</th>
+                <th class="px-4 py-2">عملیات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales %}
+            <tr class="border-t">
+                <td class="px-4 py-2">{{ forloop.counter }}</td>
+                <td class="px-4 py-2">{{ sale.customer }}</td>
+                <td class="px-4 py-2">{{ sale.personnel }}</td>
+                <td class="px-4 py-2">{{ sale.work }}</td>
+                <td class="px-4 py-2">{{ sale.price|intcomma }} </td>
+                <td class="px-4 py-2">{{ sale.date|time:"H:i" }}</td>
+                <td class="px-4 py-2 flex items-center space-x-2 rtl:space-x-reverse">
+                    <a href="{% url 'update_sale' sale.id %}" class="text-blue-600 hover:text-blue-800" title="ویرایش">
+                        <i data-feather="edit" class="w-4 h-4"></i></a>
+                    <a href="{% url 'delete_sale' sale.id %}" class="text-red-600 hover:text-red-800" title="حذف">
+                        <i data-feather="trash-2" class="w-4 h-4"></i></a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="px-4 py-2 text-gray-500">هیچ فاکتوری برای امروز ثبت نشده است.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if sales %}
+<tr class="flex justify-end font-bold bg-gray-50 border-t px-10">
+    <td colspan="4" class="px-4 py-2 text-left text-bold"> جمع کل:</td>
+    <td class="px-4 py-2 text-bold">{{ total_price|intcomma }} </td>
+    <td colspan="2"></td>
+</tr>
+{% endif %}
+
+
+{% endblock content %}

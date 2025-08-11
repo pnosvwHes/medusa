@@ -1,0 +1,251 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="flex justify-center items-center min-h-screen bg-gray-100">
+  <div class="bg-white shadow-md rounded-xl p-6 w-full max-w-2xl mx-4">
+    <h1 class="text-2xl font-bold mb-6 text-center">ثبت فاکتور جدید</h1>
+    <form method="POST" id="saleForm">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for field in form %}
+          {% if field.name != 'date' and field.name != 'time' %}
+          <div class="flex flex-col md:flex-row md:items-center gap-2">
+            <label for="{{ field.id_for_label }}" class="md:w-1/3 text-gray-700">{{ field.label }}</label>
+            <div class="md:w-2/3">
+              {% if field.name == 'price' %}
+                <input type="text" name="price" id="{{ field.id_for_label }}" class="border p-2 w-full price-field" 
+                       value="{{ field.value|default_if_none:''|intcomma }}">
+              {% else %}
+                {{ field }}
+              {% endif %}
+              {% if field.errors %}
+                <div class="text-red-500 text-sm mt-1">{{ field.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+
+        <!-- تاریخ و ساعت -->
+        <div class="flex flex-col md:flex-row md:items-center gap-2 col-span-1 md:col-span-2">
+          <div class="flex-1 flex flex-col md:flex-row md:items-center gap-2">
+            <label for="{{ form.date.id_for_label }}" class="md:w-1/3 text-gray-700">{{ form.date.label }}</label>
+            <div class="md:w-2/3">
+              {{ form.date }}
+              {% if form.date.errors %}
+                <div class="text-red-500 text-sm mt-1">{{ form.date.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="flex-1 flex flex-col md:flex-row md:items-center gap-2">
+            <label for="{{ form.time.id_for_label }}" class="md:w-1/3 text-gray-700">{{ form.time.label }}</label>
+            <div class="md:w-2/3">
+              {{ form.time }}
+              {% if form.time.errors %}
+                <div class="text-red-500 text-sm mt-1">{{ form.time.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-6 flex justify-end gap-4">
+        <button type="submit" class="button primary">ذخیره فاکتور</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal پرداخت -->
+<div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center hidden z-50">
+  <div class="bg-white rounded-xl w-full max-w-2xl p-6 mx-4">
+    <h2 class="text-xl font-bold mb-4">ثبت پرداخت‌ها</h2>
+    <form id="paymentForm">
+      {% csrf_token %}
+      <input type="hidden" id="saleId" />
+      <div id="paymentRows"></div>
+      <button type="button" id="addRow" class="bg-green-500 text-white px-3 py-1 rounded mt-4">+ افزودن پرداخت</button>
+      <div class="mt-6 flex justify-end gap-4">
+        <button type="button" id="cancelPayment" class="button bg-red-500 hover:bg-red-600">ثبت فاکتور بدون پرداخت</button>
+        <button type="submit" class="button primary">ثبت پرداخت‌ها</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let paymentMethods = [], banks = [];
+let invoiceTotalAmount = 0;
+
+document.addEventListener("DOMContentLoaded", () => {
+  fetch("{% url 'get_payment_data' %}")
+    .then(res => res.json())
+    .then(data => {
+      paymentMethods = data.payment_methods;
+      banks = data.banks;
+    });
+
+  const totalAmountField = document.getElementById("id_price");
+  if (totalAmountField) {
+    invoiceTotalAmount = parseFloat(totalAmountField.value.replace(/,/g, '')) || 0;
+    totalAmountField.addEventListener("change", updateInvoiceAmount);
+    totalAmountField.addEventListener("input", e => {
+      formatNumber(e.target);
+      updateInvoiceAmount.call(e.target);
+    });
+    formatNumber(totalAmountField);
+  }
+
+  document.getElementById("addRow").addEventListener("click", () => {
+    addPaymentRow(true);
+  });
+
+  // ثبت فاکتور
+  document.getElementById("saleForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    let priceStr = formData.get("price") || "0";
+    priceStr = priceStr.replace(/,/g, '');
+    formData.set("price", priceStr);
+    invoiceTotalAmount = parseFloat(priceStr) || 0;
+
+    fetch("{% url 'create_sale' %}", {
+      method: "POST",
+      body: formData,
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": formData.get("csrfmiddlewaretoken")
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.sale_id) {
+          document.getElementById("saleId").value = data.sale_id;
+          openModal();
+        }
+      });
+  });
+
+  // ثبت پرداخت‌ها
+  document.getElementById("paymentForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const saleId = document.getElementById("saleId").value;
+    const rows = document.querySelectorAll("#paymentRows > div");
+    const payments = [];
+
+    rows.forEach(row => {
+      const methodId = row.querySelector("select[name='method']").value;
+      const bankId = row.querySelector("select[name='bank']").value || null;
+      const amountStr = row.querySelector("input[name='amount']").value.replace(/,/g, '');
+      payments.push({
+        method_id: methodId,
+        bank_id: bankId,
+        amount: amountStr
+      });
+    });
+
+    fetch("{% url 'save_payments' %}", {
+      method: "POST",
+      body: JSON.stringify({
+        sale_id: saleId,
+        payments: payments
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": document.querySelector("#paymentForm [name=csrfmiddlewaretoken]").value
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "ok") {
+        alert("پرداخت‌ها ذخیره شد");
+        location.reload();
+      }
+    });
+  });
+});
+
+function updateInvoiceAmount() {
+  invoiceTotalAmount = parseFloat(this.value.replace(/,/g, '')) || 0;
+}
+
+function openModal() {
+  document.getElementById("paymentModal").classList.remove("hidden");
+  document.getElementById("paymentRows").innerHTML = "";
+  addPaymentRow(false);
+}
+
+function addPaymentRow(fillRemaining) {
+  const row = document.createElement("div");
+  row.classList.add("mb-4", "flex", "flex-col", "sm:flex-row", "gap-4", "items-center");
+
+  const methodSelect = document.createElement("select");
+  methodSelect.classList.add("border", "p-2", "w-full", "sm:w-auto");
+  methodSelect.name = "method";
+  methodSelect.innerHTML = paymentMethods.map(m => `<option value="${m.id}">${m.name}</option>`).join("");
+
+  const bankSelect = document.createElement("select");
+  bankSelect.classList.add("border", "p-2", "w-full", "sm:w-auto");
+  bankSelect.name = "bank";
+  bankSelect.innerHTML = `<option value="">- انتخاب بانک -</option>` +
+    banks.map(b => `<option value="${b.id}">${b.name}</option>`).join("");
+
+  const amountInput = document.createElement("input");
+  amountInput.type = "text";
+  amountInput.name = "amount";
+  amountInput.placeholder = "مبلغ";
+  amountInput.classList.add("border", "p-2", "w-full", "sm:w-auto", "price-field");
+
+  if (fillRemaining) {
+    let sumPaid = 0;
+    document.querySelectorAll("#paymentRows input[name='amount']").forEach(inp => {
+      let val = inp.value.replace(/,/g, '');
+      sumPaid += parseFloat(val) || 0;
+    });
+    const remaining = invoiceTotalAmount - sumPaid;
+    amountInput.value = remaining > 0 ? remaining.toLocaleString('en-US') : "";
+  } else {
+    amountInput.value = invoiceTotalAmount > 0 ? invoiceTotalAmount.toLocaleString('en-US') : "";
+  }
+
+  row.appendChild(methodSelect);
+  row.appendChild(bankSelect);
+  row.appendChild(amountInput);
+  document.getElementById("paymentRows").appendChild(row);
+
+  methodSelect.addEventListener("change", () => {
+    const selected = paymentMethods.find(m => m.id == methodSelect.value);
+    bankSelect.style.display = selected && selected.requires_bank ? "block" : "none";
+  });
+  methodSelect.dispatchEvent(new Event("change"));
+
+  amountInput.addEventListener("input", function() {
+    formatNumber(this);
+  });
+}
+
+function formatNumber(input) {
+  let value = input.value.replace(/,/g, '');
+  if (!isNaN(value) && value.length > 0) {
+    input.value = parseInt(value).toLocaleString('en-US');
+  }
+}
+</script>
+
+<style>
+.button.primary {
+  @apply bg-blue-500 hover:bg-blue-600;
+}
+#id_date, #id_time {
+  width: 100%;
+}
+@media (max-width: 768px) {
+  .md\:flex-row {
+    flex-direction: column;
+  }
+  .md\:w-1\/3, .md\:w-2\/3 {
+    width: 100%;
+  }
+}
+</style>
+{% endblock %}

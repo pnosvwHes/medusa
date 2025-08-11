@@ -1,0 +1,12 @@
+{% extends "app/base.html" %}
+ 
+{% block content %}
+<div class="container mt-5">
+    <h2>ثبت رزرو جدید</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}  
+        <button type="submit" class="button primary">ذخیره</button>
+    </form>
+</div>
+{% endblock %}

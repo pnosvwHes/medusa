@@ -1,0 +1,16 @@
+{% extends "app/base.html" %}
+
+{% block content %}
+
+    <h1>حذف فاکتور</h1>
+    <p>آیا از حذف مشتری با مشخصات زیر اطمینان دارید ؟<br>
+        نام : {{customer.name}}<br>
+        موبایل :{{customer.mobile}}
+    </p>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">ذخیره</button>
+    </form>
+    <a href="{% url 'home' %}">کنسل</a>
+{% endblock content %}
