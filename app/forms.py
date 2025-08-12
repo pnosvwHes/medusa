@@ -7,6 +7,8 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.validators import MinValueValidator
 import datetime
+from django.forms.widgets import Select
+
 
 class SaleForm(forms.ModelForm):
     date = JalaliDateField(
@@ -14,7 +16,7 @@ class SaleForm(forms.ModelForm):
         widget=AdminJalaliDateWidget(
             attrs={'class': 'border p-2 rounded w-full'}
         ),
-        initial=timezone.now().date(),  
+        initial=timezone.now().date(),    
     )
     time = forms.TimeField(
         label='ساعت',
@@ -55,37 +57,62 @@ class SaleForm(forms.ModelForm):
 
 
 
+class TransactionForm(forms.ModelForm):
 
-from django import forms
-from .models import Transaction, PaymentMethod, TransactionType, Bank
-from django.utils import timezone
-from jalali_date.fields import JalaliDateTimeField
-from jalali_date.widgets import AdminJalaliDateWidget
+    class Meta:
+        model = Transaction
+        fields = ['date','transaction_type', 'source_type', 'bank', 'amount', 'description']  # حذف date از اینجا
+        labels = {
+            'date': 'تاریخ',
+            'transaction_type': 'نوع تراکنش',
+            'source_type': 'از/به',
+            'bank': 'حساب بانکی',
+            'amount': 'مبلغ',
+            'description':'توضیحات'
+        }
+        widgets = {
+            'date': AdminJalaliDateWidget(attrs={'class': 'border p-2 rounded w-full'}),
+            'transaction_type': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'source_type': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'bank': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'amount': forms.NumberInput(attrs={'class': 'border p-2 rounded w-full'}),
+            'description': forms.Textarea(attrs={'class': 'border p-2 rounded w-full'}),
+        }
 
-from django.forms.widgets import Select
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     # مقدار اولیه برای تاریخ
+    #     self.fields['date'].initial = timezone.now().date()
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        # jdate = self.cleaned_data['date']
+        # print('000000000000000000000000000000000000000000000000')
+        # print(jdate)
+        # g_date = jdate.to_gregorian()
+        # instance.date = g_date
+
+        if commit:
+            instance.save()
+        return instance
+
+
 
 class PaymentMethodSelect(Select):
     def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
         option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
-        if value:
-            try:
-                pm = PaymentMethod.objects.get(pk=value)
-                option['attrs']['data-requires-bank'] = str(pm.requires_bank).lower()
-            except PaymentMethod.DoesNotExist:
-                option['attrs']['data-requires-bank'] = 'false'
+
+        # اگر value یک ModelChoiceIteratorValue است، باید .instance بگیریم
+        try:
+            # اگر value خودش آبجکت نیست
+            pm_instance = value.instance
+        except AttributeError:
+            pm_instance = None
+
+        if pm_instance:
+            option['attrs']['data-requires-bank'] = str(pm_instance.requires_bank).lower()
+        else:
+            option['attrs']['data-requires-bank'] = 'false'
+
         return option
-
-
-class TransactionForm(forms.ModelForm):
-    date = JalaliDateField(widget=AdminJalaliDateWidget, initial=timezone.now)
-
-    class Meta:
-        model = Transaction
-        fields = ['date', 'transaction_type', 'source_type', 'bank', 'amount', 'description']
-        widgets = {
-            'transaction_type': forms.Select(attrs={'class': 'form-control'}),
-            'source_type': PaymentMethodSelect(attrs={'class': 'form-control', 'id': 'id_source_type'}),
-            'bank': forms.Select(attrs={'class': 'form-control', 'id': 'id_bank'}),
-            'amount': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_amount'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-        }

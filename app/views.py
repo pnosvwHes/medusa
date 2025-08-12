@@ -19,14 +19,14 @@ def home (request):
     sales = Sale.objects.all()
     return render(request, "app/home.html", {"sales": sales})
 
-class SaleCreateView(CreateView):
-    template_name = "app/new_sale.html" 
-    model = Sale
-    fields=["customer", "personnel", "work", "price", "date"]
-    success_url = reverse_lazy("home")
+# class SaleCreateView(CreateView):
+#     template_name = "app/new_sale.html" 
+#     model = Sale
+#     fields=["customer", "personnel", "work", "price", "date"]
+#     success_url = reverse_lazy("home")
 
 
-from .forms import SaleForm, TransactionForm
+# from .forms import SaleForm, TransactionForm
  
 class SaleCreateView(CreateView):
     template_name = "app/new_sale.html"
@@ -190,14 +190,15 @@ def save_payments(request):
         return JsonResponse({"status": "ok"})
     
 class TransactionCreateView(CreateView):
-    model = Transaction
+    template_name = "app/new_transaction.html"
     form_class = TransactionForm
-    template_name = 'new_transaction.html'
-    success_url = reverse_lazy('transaction_list')  
+    success_url = reverse_lazy("home")
 
     def form_valid(self, form):
-        messages.success(self.request, "تراکنش با موفقیت ثبت شد.")
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'transaction_id': self.object.id})
+        return response
 
 
 class LedgerReportView(ListView):

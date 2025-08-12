@@ -97,7 +97,7 @@ class Transaction(models.Model):
     bank = models.ForeignKey(Bank, null=True, blank=True, on_delete=models.SET_NULL)
     amount = models.DecimalField(max_digits=12, decimal_places=0)
     description = models.TextField(blank=True, null=True)
-    date = models.DateTimeField(default=timezone.now)
+    date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     sale = models.ForeignKey(Sale, null=True, blank=True, on_delete=models.SET_NULL)
