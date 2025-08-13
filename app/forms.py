@@ -1,5 +1,5 @@
 from django import forms
-from app.models import PaymentMethod, Sale,Customer,Personnel,Work,Transaction
+from app.models import  PersonnelUser, Sale,Customer,Personnel,Work,Transaction
 from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
 from django.utils.formats import localize
@@ -8,6 +8,8 @@ from django.utils import timezone
 from django.core.validators import MinValueValidator
 import datetime
 from django.forms.widgets import Select
+from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserCreationForm
 
 
 class SaleForm(forms.ModelForm):
@@ -48,8 +50,8 @@ class SaleForm(forms.ModelForm):
         jdate = self.cleaned_data['date']
         time = self.cleaned_data['time']
 
-        g_date = jdate.to_gregorian()
-        instance.date = datetime.datetime.combine(g_date, time)
+        # g_date = jdate.to_gregorian()
+        instance.date = datetime.datetime.combine(jdate, time)
 
         if commit:
             instance.save()
@@ -116,3 +118,50 @@ class PaymentMethodSelect(Select):
             option['attrs']['data-requires-bank'] = 'false'
 
         return option
+    
+class CustomUserCreationForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput, label='رمز عبور')
+    password_confirm = forms.CharField(widget=forms.PasswordInput, label="تکرار رمز عبور")
+    personnel = forms.ModelChoiceField(
+        queryset=Personnel.objects.filter(user_profile__isnull=True),
+        required=False,
+        label="پرسنل مرتبط"
+    )
+    is_admin = forms.BooleanField(required=False, label="ادمین است؟")
+
+    class Meta:
+        model = User
+        fields = ['username', 'password', "personnel", "is_admin"]
+        labels = {
+            'username':'نام کاربری',
+            'password': 'رمز عبور'
+        }
+        help_texts = {  # این بخش تمام help_text های پیش‌فرض رو حذف می‌کنه
+            'username': '',
+            'password': '',
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        password_confirm = cleaned_data.get("password_confirm")
+        if password and password != password_confirm:
+            self.add_error('password_confirm', "رمز عبور با تکرار آن مطابقت ندارد")
+        return cleaned_data
+    
+    def save(self, commit=True):
+        user = super().save(commit=commit)
+        personnel = self.cleaned_data.get("personnel")
+        is_admin = self.cleaned_data.get("is_admin", False)
+
+        if personnel:
+            PersonnelUser.objects.create(
+                personnel=personnel,
+                user=user,
+                is_admin=is_admin
+            )
+
+        return user
+
+
+

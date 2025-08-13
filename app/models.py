@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 from django.utils import timezone
-
+from django.contrib.auth.models import User
 # Create your models here.
 
 class UserProfile(AbstractBaseUser):
@@ -47,6 +47,29 @@ class Sale(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     work = models.ForeignKey("Work" , on_delete=  models.CASCADE)
+    commission_percentage = models.IntegerField(default=60)
+    commission_amount = models.IntegerField(default=0)
+    
+    def save(self, *args, **kwargs):
+        if not self.pk:  
+            commission = PersonnelCommission.objects.filter(
+                personnel=self.personnel,
+                work=self.work,
+                start_date__lte=self.date.date(),
+                end_date__gte=self.date.date()
+            ).first()
+
+            if commission:
+                self.commission_percentage = commission.percentage
+                self.commission_amount = int(self.price * commission.percentage / 100)
+            else:
+                self.commission_percentage = 0
+                self.commission_amount = 0
+
+        super().save(*args, **kwargs)
+
+
+
 
 class Work(models.Model):
     work_name = models.CharField(max_length=1000)
@@ -104,3 +127,40 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.transaction_type} - {self.source_type} - {self.amount} -{self.date}-{self.description}"
+    
+
+class PersonnelCommission(models.Model):
+    personnel = models.ForeignKey("Personnel", on_delete=models.CASCADE)
+    work = models.ForeignKey("Work" , on_delete=  models.CASCADE)
+    percentage = models.IntegerField(default=60)
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+
+class PersonnelUser(models.Model):
+    personnel = models.OneToOneField(Personnel, on_delete=models.CASCADE, related_name='user_profile')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='personnel_profile')
+    is_admin = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.personnel} - {self.user.username}"
+    
+    def get_personnel(self):
+        return self.personnel
+    
+class Appointment(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='appointments')
+    work = models.ForeignKey(Work, on_delete=models.CASCADE)
+    personnel = models.ForeignKey(Personnel, on_delete=models.CASCADE)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField(blank=True)
+    is_paid = models.BooleanField(default=False)
+    notes = models.TextField(blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.end_time and hasattr(self.work, 'duration'):
+            self.end_time = self.start_time + timezone.timedelta(minutes=self.work.duration)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.customer.name} - {self.work.work_name} ({self.start_time})"

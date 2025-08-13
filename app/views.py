@@ -9,12 +9,18 @@ from django.db.models.query import QuerySet,Q
 from django.utils import timezone
 from jdatetime import datetime as jdatetime
 from jalali_date import datetime2jalali
-from django.db.models import Sum
+from django.db.models import Sum,Case, When, F, IntegerField
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime, timedelta
 from app.forms import *
+from django.contrib.auth.decorators import login_required,user_passes_test
+from django.utils.decorators import method_decorator
+from django.shortcuts import render
+from app.models import Sale
+from .utils import is_admin
+import jdatetime
 
-
+@login_required
 def home (request):
     sales = Sale.objects.all()
     return render(request, "app/home.html", {"sales": sales})
@@ -39,51 +45,65 @@ class SaleCreateView(CreateView):
             return JsonResponse({'sale_id': self.object.id})
         return response
 
+
+
 class SaleListView(ListView):
     template_name = "app/sale_list.html"
     model = Sale
     context_object_name = "sales"
-    
-    
+    print('1')
     def get_queryset(self):
         selected_date_str = self.request.GET.get('date')
-    
+        
         try:
             if selected_date_str:
-                jalali_date = jdatetime.strptime(selected_date_str, '%Y-%m-%d')
+                # تبدیل رشته دریافتی به جلالی و سپس میلادی
+                jalali_date = jdatetime.date.fromisoformat(selected_date_str)
                 target_date = jalali_date.togregorian()
+                
             else:
                 target_date = timezone.now().date()
-            
-            
-            sales =  Sale.objects.filter(date__date=target_date).order_by('-date')
+
+            print("Target date:", self.request.user.is_superuser, self.request.user.first_name)  # تست
+            # شرط برای ادمین
+            if self.request.user.is_superuser:
+                sales = Sale.objects.filter(date__date=target_date).order_by('-date')
+            else:
+                personneluser = getattr(self.request.user, "personnel_profile", None)
+                personnel = personneluser.get_personnel()
+                if personnel:
+                    sales = Sale.objects.filter(
+                        date__date=target_date,
+                        personnel=personnel
+                    ).annotate(
+                        display_price=F('commission_amount')  # برای کاربران عادی، همیشه کمیسیون
+                    ).order_by('-date')
+                else:
+                    sales = Sale.objects.none()
+
             return sales
-        
+
         except Exception as e:
             print(f"Error in date processing: {e}")
             return Sale.objects.none()
 
-    
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.now()
+
         def to_persian_numbers(s):
             persian_digits = '۰۱۲۳۴۵۶۷۸۹'
             return ''.join(persian_digits[int(ch)] if ch.isdigit() else ch for ch in str(s))
+
         selected_date = self.request.GET.get('date')
         if selected_date:
-            try:
-                # jalali_date = jdatetime.strptime(selected_date, '%Y-%m-%d')
-                context['selected_jalali_date'] = selected_date
-                context['date_formatted'] = selected_date
-            except ValueError:
-                pass
+            context['selected_jalali_date'] = selected_date
+            context['date_formatted'] = selected_date
         else:
-            jalali_today_str = datetime2jalali(today).strftime('%Y-%m-%d')  
-            context['selected_jalali_date'] = to_persian_numbers(jalali_today_str)  
-            context['date_formatted'] = jalali_today_str  
-        
+            jalali_today_str = datetime2jalali(today).strftime('%Y-%m-%d')
+            context['selected_jalali_date'] = to_persian_numbers(jalali_today_str)
+            context['date_formatted'] = jalali_today_str
+
         context['today_jalali'] = datetime2jalali(today).strftime('%Y-%m-%d')
 
         sales_today = self.get_queryset()
@@ -91,7 +111,6 @@ class SaleListView(ListView):
         context['total_price'] = total_price
 
         return context
-
     
 class SaleUpdateView(UpdateView):
     template_name = "app/edit_sale.html" 
@@ -154,7 +173,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 import json
-from .models import Sale, Transaction, TransactionType, PaymentMethod, Bank
+from .models import Appointment, Sale, Transaction, TransactionType, PaymentMethod, Bank
 
 @csrf_exempt
 def save_payments(request):
@@ -200,7 +219,8 @@ class TransactionCreateView(CreateView):
             return JsonResponse({'transaction_id': self.object.id})
         return response
 
-
+@method_decorator(login_required, name='dispatch')
+@method_decorator(user_passes_test(is_admin), name='dispatch')
 class LedgerReportView(ListView):
     model = Transaction
     template_name = "app/ledger_report.html"
@@ -331,3 +351,238 @@ class LedgerReportView(ListView):
             "bank_id": bank_id,
         })
         return context
+    
+
+@login_required
+@user_passes_test(is_admin)
+def create_user_view(request):
+    if request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, "کاربر با موفقیت ساخته شد.")
+            return redirect('users')
+    else:
+        form = CustomUserCreationForm()
+
+    return render(request, 'app/new_user.html', {'form': form})
+
+@login_required
+@user_passes_test(is_admin)
+def user_list_view(request):
+    users = User.objects.all()
+    return render(request, 'app/user_list.html', {'users': users})
+
+
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import ListView
+from .models import Appointment, Personnel, Customer, Work
+from datetime import datetime
+from django.utils import timezone
+
+class CalendarView(ListView):
+    template_name = 'app/calendar.html'
+    model = Appointment
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['personnel_list'] = Personnel.objects.all()
+        context['customer_list'] = Customer.objects.all()
+        context['work_list'] = Work.objects.all()
+        context['appointments'] = Appointment.objects.select_related('customer', 'personnel', 'work').all()
+        return context
+
+@csrf_exempt
+def create_appointment(request):
+    if request.method == 'POST':
+        try:
+            data = request.POST
+
+            customer_id = data.get('customer_id')
+            work_id = data.get('work_id')
+            personnel_id = data.get('personnel_id')
+            start_time_str = data.get('start_time')
+            end_time_str = data.get('end_time')
+
+            if not all([customer_id, personnel_id, start_time_str, end_time_str]):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'لطفاً تمام فیلدهای ضروری را پر کنید'
+                }, status=400)
+
+            # تبدیل رشته‌ها به datetime
+            try:
+                start_time = datetime.fromisoformat(start_time_str)
+                end_time = datetime.fromisoformat(end_time_str)
+            except ValueError as e:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'فرمت تاریخ نامعتبر است'
+                }, status=400)
+
+            # بررسی تداخل فقط برای همان پرسنل
+            conflict = Appointment.objects.filter(
+                personnel_id=personnel_id,
+                start_time__lt=end_time,
+                end_time__gt=start_time
+            ).exists()
+
+            if conflict:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'این بازه زمانی قبلاً برای این پرسنل رزرو شده است.'
+                }, status=400)
+
+            # اگر تداخلی نبود، ایجاد رزرو
+            appointment = Appointment.objects.create(
+                customer_id=customer_id,
+                work_id=work_id,
+                personnel_id=personnel_id,
+                start_time=start_time,
+                end_time=end_time
+            )
+
+            return JsonResponse({
+                'status': 'success',
+                'appointment_id': appointment.id,
+                'message': 'رزرو با موفقیت ثبت شد'
+            }, status=201)
+
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+    return JsonResponse({
+        'status': 'error',
+        'message': 'متد غیرمجاز'
+    }, status=405)
+
+def get_available_time_slots(request):
+    personnel_id = request.GET.get('personnel_id')
+    date = request.GET.get('date')
+    
+    if not personnel_id or not date:
+        return JsonResponse({'status': 'error', 'message': 'پارامترهای ضروری ارسال نشده'}, status=400)
+    
+    try:
+        # محاسبه زمان‌های آزاد بر اساس رزروهای موجود
+        appointments = Appointment.objects.filter(
+            personnel_id=personnel_id,
+            start_time__date=date
+        ).order_by('start_time')
+        
+        # اینجا منطق محاسبه زمان‌های خالی را پیاده‌سازی کنید
+        slots = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00']
+        
+        return JsonResponse({'status': 'success', 'slots': slots})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+def appointment_list(request):
+    personnel_id = request.GET.get('personnel_id')
+    if not personnel_id:
+        return JsonResponse([], safe=False)
+
+    try:
+        appointments = Appointment.objects.filter(personnel_id=personnel_id)
+        data = []
+        for app in appointments:
+            data.append({
+                'id': app.id,
+                'title': f"{app.customer.name} - {app.work.work_name}",
+                'start': app.start_time.isoformat(),
+                'end': app.end_time.isoformat(),
+                'customerId': app.customer.id,
+                'customerName': app.customer.name,
+                'workId': app.work.id,
+                'workName': app.work.work_name,
+                'personnelId': app.personnel.id,
+                'personnelName': f"{app.personnel.fname} {app.personnel.lname}",
+                'isPaid': app.is_paid,
+            })
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@csrf_exempt
+def update_appointment(request, pk):
+    if request.method == 'POST':
+        appointment = get_object_or_404(Appointment, pk=pk)
+        try:
+            data = request.POST
+            
+            # اعتبارسنجی داده‌ها
+            required_fields = ['customer_id', 'personnel_id', 'start_time', 'end_time']
+            if not all(field in data for field in required_fields):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'لطفاً تمام فیلدهای ضروری را پر کنید'
+                }, status=400)
+
+            # به‌روزرسانی فیلدها
+            appointment.customer_id = data.get('customer_id')
+            appointment.work_id = data.get('work_id')
+            appointment.personnel_id = data.get('personnel_id')
+            
+            try:
+                appointment.start_time = datetime.fromisoformat(data.get('start_time'))
+                appointment.end_time = datetime.fromisoformat(data.get('end_time'))
+            except ValueError:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'فرمت تاریخ نامعتبر است'
+                }, status=400)
+
+            # بررسی تداخل زمان‌ها
+            conflict = Appointment.objects.filter(
+                personnel_id=appointment.personnel_id,
+                start_time__lt=appointment.end_time,
+                end_time__gt=appointment.start_time
+            ).exclude(pk=appointment.pk).exists()
+
+            if conflict:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'این بازه زمانی قبلاً برای این پرسنل رزرو شده است.'
+                }, status=400)
+
+            appointment.save()
+            return JsonResponse({
+                'status': 'success',
+                'message': 'رزرو با موفقیت ویرایش شد'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+
+    return JsonResponse({'status': 'error', 'message': 'متد غیرمجاز'}, status=405)
+
+@csrf_exempt
+def delete_appointment(request, pk):
+    if request.method == 'POST':
+        appointment = get_object_or_404(Appointment, pk=pk)
+        try:
+            appointment.delete()
+            return JsonResponse({
+                'status': 'success',
+                'message': 'رزرو با موفقیت حذف شد'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+
+    return JsonResponse({'status': 'error', 'message': 'متد غیرمجاز'}, status=405)

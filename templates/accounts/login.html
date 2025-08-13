@@ -1,0 +1,32 @@
+{% extends "app/base.html" %}
+{% block content %}
+<div class="max-w-md mx-auto bg-white shadow-md rounded-lg p-6 mt-10">
+  <h2 class="text-2xl font-bold mb-6 text-center">ورود به سیستم</h2>
+  
+  {% if form.errors %}
+    <div class="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">
+      نام کاربری یا رمز عبور اشتباه است.
+    </div>
+  {% endif %}
+
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">نام کاربری</label>
+      <input type="text" name="username" required 
+             class="border border-gray-300 rounded w-full p-2 focus:ring focus:ring-blue-200">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">رمز عبور</label>
+      <input type="password" name="password" required 
+             class="border border-gray-300 rounded w-full p-2 focus:ring focus:ring-blue-200">
+    </div>
+
+    <button type="submit" 
+            class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded w-full">
+      ورود
+    </button>
+  </form>
+</div>
+{% endblock %}

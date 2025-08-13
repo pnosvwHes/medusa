@@ -1,0 +1,58 @@
+{% extends "app/base.html" %}
+
+
+{% block content %}
+<div class="flex justify-center items-center min-h-screen bg-gray-100">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[300px]">
+        <h2 class="text-lg font-bold mb-4 text-center">ساخت کاربر</h2>
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+
+            <!-- نام کاربری -->
+            <div>
+                <label class="block text-sm font-medium mb-1">{{ form.username.label }}</label>
+                {{ form.username|add_class:"border border-gray-300 rounded px-3 py-2 w-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400" }}
+                {% if form.username.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.username.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- رمز عبور -->
+            <div>
+                <label class="block text-sm font-medium mb-1">{{ form.password.label }}</label>
+                {{ form.password|add_class:"border border-gray-300 rounded px-3 py-2 w-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400" }}
+                {% if form.password.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.password.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- تکرار رمز عبور -->
+            <div>
+                <label class="block text-sm font-medium mb-1">{{ form.password_confirm.label }}</label>
+                {{ form.password_confirm|add_class:"border border-gray-300 rounded px-3 py-2 w-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400" }}
+                {% if form.password_confirm.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.password_confirm.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- پرسنل -->
+            <div>
+                <label class="block text-sm font-medium mb-1">{{ form.personnel.label }}</label>
+                {{ form.personnel|add_class:"border border-gray-300 rounded px-3 py-2 w-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400" }}
+            </div>
+
+            <!-- ادمین است -->
+            <div class="flex items-center space-x-2">
+                {{ form.is_admin }}
+                <label class="text-sm">{{ form.is_admin.label }}</label>
+            </div>
+
+            <!-- دکمه -->
+            <button type="submit"
+                class="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600 w-full">
+                ذخیره
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

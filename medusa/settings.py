@@ -36,7 +36,6 @@ ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
     'app',
-    'booking',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -162,6 +161,10 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 JALALI_DATE_FORMAT = "%Y/%m/%d _ %H:%M"
+
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'home'   # بعد از ورود کجا بره
+LOGOUT_REDIRECT_URL = 'login'
 
 # LOGGING = {
 #     'version': 1,

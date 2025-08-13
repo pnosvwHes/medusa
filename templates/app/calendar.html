@@ -1,4 +1,4 @@
-{% extends "app/base.html" %}
+{% extends "app/base.html" %} 
 {% load static %}
 
 {% block extra_head %}
@@ -112,6 +112,8 @@
 <script src="https://cdn.jsdelivr.net/npm/persian-date/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker/dist/js/persian-datepicker.min.js"></script>
 
+
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const isMobile = window.matchMedia("(max-width: 768px)").matches;
@@ -169,14 +171,14 @@ document.addEventListener('DOMContentLoaded', function() {
     timeZone: 'local',
     selectMirror: true,
     dayMaxEvents: isMobile ? 3 : false,
-    longPressDelay: 0, // برای فعال‌سازی تاچ سریع‌تر
+    longPressDelay: 0,
     eventLongPressDelay: 0,
     touchStartThreshold: 1,
     firstDay: 6,
     events: function(fetchInfo, successCallback, failureCallback) {
       const personnelId = personnelFilter.value;
       if (!personnelId) return successCallback([]);
-      axios.get(`/booking/appointments/?personnel_id=${personnelId}`)
+      axios.get(`/appointments/?personnel_id=${personnelId}`)
         .then(res => {
           const events = res.data.map(ev => ({
             id: ev.id,
@@ -234,9 +236,8 @@ document.addEventListener('DOMContentLoaded', function() {
   bookingForm.addEventListener('submit', function(e) {
     e.preventDefault();
     const id = $('#booking_id').val();
-    const url = id ? `/booking/update/${id}/` : `/booking/create/`;
+    const url = id ? `/update/${id}/` : `/create/`;
 
-    // تبدیل به میلادی قبل از ارسال
     const startGregorian = new persianDate($('#modal_start').val()).toGregorian();
     const endGregorian = new persianDate($('#modal_end').val()).toGregorian();
 
@@ -257,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
   deleteBtn.addEventListener('click', function() {
     if (!confirm('حذف شود؟')) return;
     const id = $('#booking_id').val();
-    axios.post(`/booking/delete/${id}/`).then(res => {
+    axios.post(`/delete/${id}/`).then(res => {
       if (res.data.status === 'success') {
         bookingModal.hide();
         calendar.refetchEvents();
