@@ -164,3 +164,65 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"{self.customer.name} - {self.work.work_name} ({self.start_time})"
+    
+
+from django.db import models
+
+# نوع پرداخت
+class PayType(models.Model):
+    name = models.CharField(max_length=50)  # پرسنل، هزینه سالن، هزینه منزل، سایر
+    is_personnel = models.BooleanField(default=False)  # اگر انتخاب پرسنل باشد
+
+    def __str__(self):
+        return self.name
+
+
+# مدل پرداخت
+class Pay(models.Model):
+    source_type = models.ForeignKey("PaymentMethod", on_delete=models.CASCADE)
+    bank = models.ForeignKey("Bank", null=True, blank=True, on_delete=models.SET_NULL)
+    amount = models.DecimalField(max_digits=12, decimal_places=0)
+    description = models.TextField(blank=True, null=True)
+    date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    pay_type = models.ForeignKey(PayType, on_delete=models.CASCADE)
+    personnel = models.ForeignKey(
+        "Personnel",
+        null=True, blank=True,
+        on_delete=models.CASCADE,
+        related_name="payments_received"
+    )
+
+    def __str__(self):
+        return f"پرداخت به {self.pay_type} - {self.amount} - {self.date}"
+
+
+# نوع دریافت
+class ReceiptType(models.Model):
+    name = models.CharField(max_length=50)  # مشتری، سایر
+    is_customer = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
+
+
+# مدل دریافت
+class Receipt(models.Model):
+    source_type = models.ForeignKey("PaymentMethod", on_delete=models.CASCADE)
+    bank = models.ForeignKey("Bank", null=True, blank=True, on_delete=models.SET_NULL)
+    amount = models.DecimalField(max_digits=12, decimal_places=0)
+    description = models.TextField(blank=True, null=True)
+    date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    receipt_type = models.ForeignKey(ReceiptType, on_delete=models.CASCADE)
+    customer = models.ForeignKey(
+        "Customer",
+        null=True, blank=True,
+        on_delete=models.CASCADE,
+        related_name="receipts_made"
+    )
+
+    def __str__(self):
+        return f"دریافت از {self.receipt_type} - {self.amount} - {self.date}"

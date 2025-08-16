@@ -4,35 +4,34 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto p-4 bg-white rounded-xl shadow-md my-8">
-  <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">ثبت تراکنش جدید</h1>
+  <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">ثبت پرداخت جدید</h1>
   
-  <form method="POST" id="transactionForm" class="space-y-6">
+  <form method="POST" id="payForm" class="space-y-6">
     {% csrf_token %}
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- ستون اول -->
       <div class="space-y-4">
-        <!-- فیلد تاریخ -->
         <div class="form-group">
           <label for="{{ form.date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
             {{ form.date.label }}
           </label>
-          <input type="text" 
-              id="jalali-datepicker" 
-              name="date" 
-              class="border p-2 rounded text-center"
-              autocomplete="off">
+          {{ form.date }}
         </div>
-        
-        <!-- نوع تراکنش -->
+
         <div class="form-group">
-          <label for="{{ form.transaction_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-            {{ form.transaction_type.label }}
+          <label for="{{ form.pay_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.pay_type.label }}
           </label>
-          {{ form.transaction_type }}
+          {{ form.pay_type }}
         </div>
-        
-        <!-- حساب بانکی -->
+
+        <div class="form-group" id="personnelField">
+          <label for="{{ form.personnel.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.personnel.label }}
+          </label>
+          {{ form.personnel }}
+        </div>
+
         <div class="form-group">
           <label for="{{ form.bank.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
             {{ form.bank.label }}
@@ -40,24 +39,15 @@
           {{ form.bank }}
         </div>
       </div>
-      
-      <!-- ستون دوم -->
+
       <div class="space-y-4">
-        <!-- مبلغ -->
         <div class="form-group">
           <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
             {{ form.amount.label }}
           </label>
-          <div class="relative">
-            {{ form.amount }}
-            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">﷼</span>
-          </div>
-          {% if form.amount.errors %}
-            <div class="text-red-500 text-xs mt-1">{{ form.amount.errors.0 }}</div>
-          {% endif %}
+          {{ form.amount }}
         </div>
-        
-        <!-- از/به -->
+
         <div class="form-group">
           <label for="{{ form.source_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
             {{ form.source_type.label }}
@@ -66,19 +56,17 @@
         </div>
       </div>
     </div>
-    
-    <!-- توضیحات (تمام عرض) -->
+
     <div class="form-group">
       <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
         {{ form.description.label }}
       </label>
       {{ form.description }}
     </div>
-    
-    <!-- دکمه‌های فرم -->
+
     <div class="flex justify-end space-x-4 pt-4">
       <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition duration-200">
-        ذخیره تراکنش
+        ذخیره پرداخت
       </button>
       <a href="{% url 'home' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg transition duration-200">
         انصراف
@@ -87,60 +75,25 @@
   </form>
 </div>
 
-<!-- اسکریپت‌های مورد نیاز -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-  // فرمت کردن مبلغ
-  const amountInput = document.querySelector('.price-input');
-  if (amountInput) {
-    amountInput.addEventListener('input', function(e) {
-      let value = e.target.value.replace(/,/g, '');
-      if (!isNaN(value)) {
-        e.target.value = Number(value).toLocaleString('fa-IR');
-      }
-    });
+  const payTypeSelect = document.getElementById("id_pay_type");
+  const personnelField = document.getElementById("personnelField");
+
+  function togglePersonnel() {
+    const selectedOption = payTypeSelect.options[payTypeSelect.selectedIndex];
+    // بررسی data attribute که از فرم اضافه می‌کنیم (یا استفاده از فلگ is_personnel)
+    if (selectedOption.dataset.isPersonnel === "true") {
+      personnelField.style.display = "block";
+    } else {
+      personnelField.style.display = "none";
+      const personnelInput = personnelField.querySelector("select");
+      if(personnelInput) personnelInput.value = "";
+    }
   }
 
-  // فعال کردن تاریخ‌نگار
-  if (typeof jalaliDatepicker !== 'undefined') {
-    jalaliDatepicker.init({
-      // تنظیمات دلخواه برای تاریخ‌نگار
-    });
-  }
-});
-
-// مدیریت ارسال فرم
-document.getElementById('transactionForm').addEventListener('submit', function(e) {
-  // حذف ویرگول‌ها از مبلغ قبل از ارسال
-  const amountInput = document.querySelector('.price-input');
-  if (amountInput) {
-    amountInput.value = amountInput.value.replace(/,/g, '');
-  }
+  togglePersonnel();
+  payTypeSelect.addEventListener("change", togglePersonnel);
 });
 </script>
-
-<style>
-.jalali-date-input {
-  background-image: url("{% static 'icons/calendar.svg' %}");
-  background-repeat: no-repeat;
-  background-position: left 10px center;
-  background-size: 20px;
-  padding-right: 10px;
-  padding-left: 40px;
-}
-
-.select2 {
-  min-width: 100%;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-@media (max-width: 768px) {
-  .grid-cols-1 {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
 {% endblock %}

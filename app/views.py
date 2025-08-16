@@ -2,37 +2,27 @@ import json
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render,redirect
 from django.urls import reverse_lazy
-from app.models import Payment, Sale,Customer,Personnel, Transaction, TransactionType,Work,PaymentMethod,Bank
+from app.models import *
 from django.views.generic import CreateView,ListView,UpdateView,DeleteView
 from django.contrib import messages
-from django.db.models.query import QuerySet,Q
 from django.utils import timezone
-from jdatetime import datetime as jdatetime
 from jalali_date import datetime2jalali
-from django.db.models import Sum,Case, When, F, IntegerField
+from django.db.models import Sum, F, Q
 from django.views.decorators.csrf import csrf_exempt
-from datetime import datetime, timedelta
+from datetime import datetime as gdatetime, timedelta
 from app.forms import *
 from django.contrib.auth.decorators import login_required,user_passes_test
 from django.utils.decorators import method_decorator
-from django.shortcuts import render
-from app.models import Sale
 from .utils import is_admin
 import jdatetime
+
+
 
 @login_required
 def home (request):
     sales = Sale.objects.all()
     return render(request, "app/home.html", {"sales": sales})
 
-# class SaleCreateView(CreateView):
-#     template_name = "app/new_sale.html" 
-#     model = Sale
-#     fields=["customer", "personnel", "work", "price", "date"]
-#     success_url = reverse_lazy("home")
-
-
-# from .forms import SaleForm, TransactionForm
  
 class SaleCreateView(CreateView):
     template_name = "app/new_sale.html"
@@ -111,7 +101,7 @@ class SaleListView(ListView):
         context['total_price'] = total_price
 
         return context
-    
+
 class SaleUpdateView(UpdateView):
     template_name = "app/edit_sale.html" 
     model = Sale
@@ -119,13 +109,11 @@ class SaleUpdateView(UpdateView):
     success_url = reverse_lazy("home")
     context_object_name="sale"
 
-
 class SaleDeleteView(DeleteView):
     template_name = "app/delete_sale.html" 
     model = Sale
     success_url = reverse_lazy("home")
     context_object_name="sale"
-
 
 class CustomerListView(ListView):
     template_name="app/customer_list.html"
@@ -140,26 +128,22 @@ class CustomerListView(ListView):
         return queryset.all() 
 
 
-
 class CustomerCreateView(CreateView):
     template_name = "app/new_customer.html" 
     model = Customer
     fields=["name", "mobile"]
     success_url = reverse_lazy("customers")
-
 class CustomerUpdateView(UpdateView):
     template_name = "app/edit_customer.html" 
     model = Customer
     fields=["name", "mobile", "black_list", "black_list_reason"]
     success_url = reverse_lazy("customers")
     context_object_name="customer"
-
 class CustomerDeleteView(DeleteView):
     template_name = "app/delete_customer.html" 
     model = Customer
     success_url = reverse_lazy("customers")
     context_object_name="customer"
-
 
 def get_payment_data(request):
     payment_methods = list(PaymentMethod.objects.all().values("id", "name", "requires_bank"))
@@ -169,14 +153,10 @@ def get_payment_data(request):
         "banks": banks
     })
 
-from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
-import json
-from .models import Appointment, Sale, Transaction, TransactionType, PaymentMethod, Bank
+
 
 @csrf_exempt
-def save_payments(request):
+def save_receipts(request):
     if request.method == "POST":
         data = json.loads(request.body)
         sale_id = data.get("sale_id")
@@ -184,21 +164,21 @@ def save_payments(request):
 
         sale = get_object_or_404(Sale, pk=sale_id)
 
-        # نوع تراکنش دریافتی (effect=1)
-        receive_type = TransactionType.objects.filter(effect=1).first()
-        if not receive_type:
-            return JsonResponse({"status": "error", "message": "نوع تراکنش دریافتی تعریف نشده است"}, status=400)
+        # همیشه از نوع مشتری استفاده می‌کنیم
+        customer_receipt_type = ReceiptType.objects.filter(is_customer=True).first()
+        if not customer_receipt_type:
+            return JsonResponse({"status": "error", "message": "نوع دریافت مشتری تعریف نشده است"}, status=400)
 
         for payment in payments:
             amount_str = str(payment.get("amount", "0")).replace(",", "")
             amount = float(amount_str) if amount_str else 0
-            
-            jalali_date = datetime2jalali(sale.date).strftime('%Y/%m/%d')
-            description = f"{sale.customer.name} | {sale.work.work_name} | {jalali_date}"
-            
-            Transaction.objects.create(
+
+            description = f"{sale.customer.name} | {sale.work.work_name} | {datetime2jalali(sale.date).strftime('%Y/%m/%d')}"
+
+            Receipt.objects.create(
                 sale=sale,
-                transaction_type=receive_type,
+                customer=sale.customer,
+                receipt_type=customer_receipt_type,
                 source_type_id=payment.get("method_id"),
                 bank_id=payment.get("bank_id") or None,
                 amount=amount,
@@ -207,7 +187,6 @@ def save_payments(request):
             )
 
         return JsonResponse({"status": "ok"})
-    
 class TransactionCreateView(CreateView):
     template_name = "app/new_transaction.html"
     form_class = TransactionForm
@@ -218,11 +197,44 @@ class TransactionCreateView(CreateView):
         if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'transaction_id': self.object.id})
         return response
+    
+class PayCreateView(CreateView):
+    template_name = "app/new_transaction.html"  # می‌توانی قالب جدا هم بسازی
+    form_class = PayForm
+    success_url = reverse_lazy("home")
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # پشتیبانی از Ajax
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'pay_id': self.object.id})
+        return response
+
+
+class ReceiptCreateView(CreateView):
+    template_name = "app/new_receipt.html"  # می‌توانی قالب جدا هم بسازی
+    form_class = ReceiptForm
+    success_url = reverse_lazy("home")
+    receipt_types = ReceiptType.objects.all()
+    source_types = PaymentMethod.objects.all()
+    
+    context = {
+        'receipt_types_json': json.dumps(
+            {str(rt.id): {'is_customer': rt.is_customer} for rt in receipt_types}
+        ),
+        'source_types_json': json.dumps(
+            {str(st.id): {'requires_bank': st.requires_bank} for st in source_types}
+        ),
+        }
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # پشتیبانی از Ajax
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'receipt_id': self.object.id})
+        return response    
 @method_decorator(login_required, name='dispatch')
-@method_decorator(user_passes_test(is_admin), name='dispatch')
+@method_decorator(user_passes_test(lambda u: u.is_superuser), name='dispatch')  # یا تابع is_admin خودت
 class LedgerReportView(ListView):
-    model = Transaction
     template_name = "app/ledger_report.html"
     context_object_name = "transactions"
     paginate_by = 50
@@ -239,95 +251,102 @@ class LedgerReportView(ListView):
 
     def get_queryset(self):
         bank_id = self.request.GET.get("bank")
-        start_date = self.request.GET.get("start_date")
-        end_date = self.request.GET.get("end_date")
+        start_date_str = self.request.GET.get("start_date")
+        end_date_str = self.request.GET.get("end_date")
         payment_method_id = self.request.GET.get("payment_method")
 
-        # تنظیم تاریخ‌های پیش‌فرض
         default_dates = self.get_default_dates()
-        
         try:
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date() if start_date else default_dates['default_start_date']
-            end_date = datetime.strptime(end_date, '%Y-%m-%d').date() if end_date else default_dates['default_end_date']
+            start_date = gdatetime.strptime(start_date_str, '%Y-%m-%d').date() if start_date_str else default_dates['default_start_date']
+            end_date = gdatetime.strptime(end_date_str, '%Y-%m-%d').date() if end_date_str else default_dates['default_end_date']
         except (ValueError, TypeError):
             start_date = default_dates['default_start_date']
             end_date = default_dates['default_end_date']
 
-        qs = Transaction.objects.select_related(
-            'transaction_type', 'source_type', 'bank'
-        ).order_by("date", "id")
+        # همه پرداخت‌ها و دریافت‌ها
+        pay_qs = Pay.objects.select_related('pay_type', 'source_type', 'bank').all()
+        receipt_qs = Receipt.objects.select_related('receipt_type', 'source_type', 'bank').all()
 
+        # فیلتر تاریخ
+        pay_qs = pay_qs.filter(date__gte=start_date, date__lte=end_date)
+        receipt_qs = receipt_qs.filter(date__gte=start_date, date__lte=end_date)
+
+        # فیلتر بانک
         if bank_id:
-            qs = qs.filter(bank_id=bank_id)
-        if payment_method_id:
-            qs = qs.filter(source_type_id=payment_method_id)
+            pay_qs = pay_qs.filter(bank_id=bank_id)
+            receipt_qs = receipt_qs.filter(bank_id=bank_id)
 
-        qs = qs.filter(date__date__gte=start_date, date__date__lte=end_date)
-        return qs
+        # فیلتر روش پرداخت
+        if payment_method_id:
+            pay_qs = pay_qs.filter(source_type_id=payment_method_id)
+            receipt_qs = receipt_qs.filter(source_type_id=payment_method_id)
+
+        # اضافه کردن نوع تراکنش برای مرتب‌سازی و محاسبه
+        pay_list = [{'obj': p, 'type': 'pay', 'amount': -p.amount} for p in pay_qs]
+        receipt_list = [{'obj': r, 'type': 'receipt', 'amount': r.amount} for r in receipt_qs]
+
+        # ادغام و مرتب‌سازی بر اساس تاریخ و id
+        all_tx = sorted(pay_list + receipt_list, key=lambda x: (x['obj'].date, getattr(x['obj'], 'id', 0)))
+        return all_tx
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # تنظیم تاریخ‌های پیش‌فرض
         default_dates = self.get_default_dates()
-        
         bank_id = self.request.GET.get("bank")
         start_date_str = self.request.GET.get("start", default_dates['default_start_date_str'])
         end_date_str = self.request.GET.get("end", default_dates['default_end_date_str'])
-        
+
         try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            start_date = gdatetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = gdatetime.strptime(end_date_str, '%Y-%m-%d').date()
         except (ValueError, TypeError):
             start_date = default_dates['default_start_date']
             end_date = default_dates['default_end_date']
 
-        # محاسبه موجودی اولیه
+        # موجودی اولیه
         opening_balance = 0
-        opening_qs = Transaction.objects.all()
-        
         if bank_id:
-            opening_qs = opening_qs.filter(bank_id=bank_id)
-            
-        opening_txs = opening_qs.filter(date__date__lt=start_date)
-        
-        for tx in opening_txs:
-            opening_balance += tx.amount * tx.transaction_type.effect
+            opening_balance += sum(p.amount for p in Pay.objects.filter(bank_id=bank_id, date__lt=start_date))
+            opening_balance -= sum(r.amount for r in Receipt.objects.filter(bank_id=bank_id, date__lt=start_date))
+        else:
+            opening_balance += sum(p.amount for p in Pay.objects.filter(date__lt=start_date))
+            opening_balance -= sum(r.amount for r in Receipt.objects.filter(date__lt=start_date))
 
-        # محاسبه موجودی جاری و جمع‌ها
         running_balance = opening_balance
         total_amount = 0
         increase_count = 0
         decrease_count = 0
         rows = [{
-                "tx": type("Tx", (), {
-                    "date": start_date,
-                    "transaction_type": type("TType", (), {"name": "مانده اولیه"}),
-                    "amount": opening_balance,
-                    "description": ""
-                })(),
-                "balance": opening_balance,
-                "amount_with_effect": None,
-                "is_opening": True
-                }]
-        
-        for tx in context["transactions"]:
-            amount_with_effect = tx.amount * tx.transaction_type.effect
-            tx.amount = tx.amount * tx.transaction_type.effect
+            "tx": type("Tx", (), {
+                "date": start_date,
+                "type": type("TType", (), {"name": "مانده اولیه"}),
+                "amount": opening_balance,
+                "description": ""
+            })(),
+            "balance": opening_balance,
+            "amount_with_effect": None,
+            "is_opening": True
+        }]
+
+        for item in context["transactions"]:
+            tx = item['obj']
+            amount_with_effect = item['amount']
             running_balance += amount_with_effect
             total_amount += amount_with_effect
-            
-            if tx.transaction_type.effect == 1:
+
+            if item['type'] == 'receipt':
                 increase_count += 1
             else:
                 decrease_count += 1
-                
+
             rows.append({
                 "tx": tx,
-                "balance": running_balance
+                "balance": running_balance,
+                "amount_with_effect": amount_with_effect,
+                "type": item['type'],
+                "is_opening": False
             })
 
-        # انتخاب نوع پرداخت پیش‌فرض
         payment_methods = PaymentMethod.objects.all()
         default_payment_method = payment_methods.filter(requires_bank=False).first()
         if not default_payment_method:
@@ -343,7 +362,6 @@ class LedgerReportView(ListView):
             "payment_methods": payment_methods,
             "default_payment_method": default_payment_method,
             "banks": Bank.objects.all(),
-            "transaction_types": TransactionType.objects.all(),
             "default_start_date": start_date_str,
             "default_end_date": end_date_str,
             "selected_start_date": start_date,
@@ -351,7 +369,6 @@ class LedgerReportView(ListView):
             "bank_id": bank_id,
         })
         return context
-    
 
 @login_required
 @user_passes_test(is_admin)
@@ -373,22 +390,17 @@ def user_list_view(request):
     users = User.objects.all()
     return render(request, 'app/user_list.html', {'users': users})
 
-
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import ListView
-from .models import Appointment, Personnel, Customer, Work
-from datetime import datetime
-from django.utils import timezone
-
 class CalendarView(ListView):
     template_name = 'app/calendar.html'
     model = Appointment
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['personnel_list'] = Personnel.objects.all()
+        if self.request.user.is_superuser:
+            context['personnel_list'] = Personnel.objects.all()
+        else:
+            personnel_user = getattr(self.request.user, "personnel_profile", None)
+            context['personnel_list'] = Personnel.objects.filter(id=personnel_user.personnel.id)
         context['customer_list'] = Customer.objects.all()
         context['work_list'] = Work.objects.all()
         context['appointments'] = Appointment.objects.select_related('customer', 'personnel', 'work').all()
@@ -414,12 +426,15 @@ def create_appointment(request):
 
             # تبدیل رشته‌ها به datetime
             try:
-                start_time = datetime.fromisoformat(start_time_str)
-                end_time = datetime.fromisoformat(end_time_str)
+                print('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+                print(datetime, type(datetime))
+                start_time = gdatetime.fromisoformat(start_time_str)
+                end_time = gdatetime.fromisoformat(end_time_str)
             except ValueError as e:
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'فرمت تاریخ نامعتبر است'
+                    'message': 'فرمت تاریخ نامعتبر است',
+                    'error_details': str(e)  # اضافه کردن جزئیات خطا
                 }, status=400)
 
             # بررسی تداخل فقط برای همان پرسنل
@@ -467,6 +482,7 @@ def create_appointment(request):
         'message': 'متد غیرمجاز'
     }, status=405)
 
+@login_required
 def get_available_time_slots(request):
     personnel_id = request.GET.get('personnel_id')
     date = request.GET.get('date')
@@ -487,6 +503,7 @@ def get_available_time_slots(request):
         return JsonResponse({'status': 'success', 'slots': slots})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 
 def appointment_list(request):
     personnel_id = request.GET.get('personnel_id')
@@ -514,6 +531,7 @@ def appointment_list(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
+@login_required
 @csrf_exempt
 def update_appointment(request, pk):
     if request.method == 'POST':
@@ -535,8 +553,8 @@ def update_appointment(request, pk):
             appointment.personnel_id = data.get('personnel_id')
             
             try:
-                appointment.start_time = datetime.fromisoformat(data.get('start_time'))
-                appointment.end_time = datetime.fromisoformat(data.get('end_time'))
+                appointment.start_time = gdatetime.fromisoformat(data.get('start_time'))
+                appointment.end_time = gdatetime.fromisoformat(data.get('end_time'))
             except ValueError:
                 return JsonResponse({
                     'status': 'error',
@@ -547,7 +565,7 @@ def update_appointment(request, pk):
             conflict = Appointment.objects.filter(
                 personnel_id=appointment.personnel_id,
                 start_time__lt=appointment.end_time,
-                end_time__gt=appointment.start_time
+                end_time__gt=appointment.start_time,
             ).exclude(pk=appointment.pk).exists()
 
             if conflict:
@@ -569,6 +587,7 @@ def update_appointment(request, pk):
 
     return JsonResponse({'status': 'error', 'message': 'متد غیرمجاز'}, status=405)
 
+@login_required
 @csrf_exempt
 def delete_appointment(request, pk):
     if request.method == 'POST':
@@ -586,3 +605,18 @@ def delete_appointment(request, pk):
             }, status=400)
 
     return JsonResponse({'status': 'error', 'message': 'متد غیرمجاز'}, status=405)
+
+@login_required
+def personnel_works(request):
+    personnel_id = request.GET.get('personnel_id')
+    if not personnel_id:
+        return JsonResponse([], safe=False)
+    commissions = PersonnelCommission.objects.filter(
+        personnel_id=personnel_id
+    ).select_related('work')
+    
+    data = [
+        {"id": c.work.id, "work_name": c.work.work_name}
+        for c in commissions
+    ]
+    return JsonResponse(data, safe=False)

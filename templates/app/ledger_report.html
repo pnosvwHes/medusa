@@ -67,10 +67,30 @@
             </thead>
             <tbody>
               {% for row in rows %}
-                <tr>
+                <tr {% if row.is_opening %}class="table-info"{% endif %}>
                   <td>{{ row.tx.date|to_jalali:'%Y/%m/%d' }}</td>
-                  <td>{{ row.tx.transaction_type.name }}</td>
-                  <td class="text-end">{{ row.tx.amount|intcomma }}</td>
+                  <td>
+                    {% if row.is_opening %}
+                      {{ row.tx.transaction_type.name }}
+                    {% else %}
+                      {% if row.type == 'pay' %}
+                        پرداخت
+                      {% elif row.type == 'receipt' %}
+                        دریافت
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    {% if not row.is_opening %}
+                      {% if row.type == 'pay' %}
+                        -{{ row.tx.amount|intcomma }}
+                      {% else %}
+                        {{ row.tx.amount|intcomma }}
+                      {% endif %}
+                    {% else %}
+                      {{ row.tx.amount|intcomma }}
+                    {% endif %}
+                  </td>
                   <td>{{ row.tx.description }}</td>
                   <td class="text-end">{{ row.balance|intcomma }}</td>
                 </tr>

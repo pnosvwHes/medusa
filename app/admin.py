@@ -1,5 +1,5 @@
 from django.contrib import admin
-from app.models import Personnel,Customer,Sale,Work,PaymentMethod,Bank,TransactionType,Transaction,Payment,PersonnelUser,PersonnelCommission
+from app.models import *
 # Register your models here.
 
 admin.site.register(Personnel)
@@ -13,3 +13,7 @@ admin.site.register(TransactionType)
 admin.site.register(Payment)
 admin.site.register(PersonnelUser)
 admin.site.register(PersonnelCommission)
+admin.site.register(Pay)
+admin.site.register(Receipt)
+admin.site.register(PayType)
+admin.site.register(ReceiptType)

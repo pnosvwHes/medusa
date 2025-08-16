@@ -1,5 +1,5 @@
 from django import forms
-from app.models import  PersonnelUser, Sale,Customer,Personnel,Work,Transaction
+from app.models import  *
 from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
 from django.utils.formats import localize
@@ -81,20 +81,8 @@ class TransactionForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'border p-2 rounded w-full'}),
         }
 
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     # مقدار اولیه برای تاریخ
-    #     self.fields['date'].initial = timezone.now().date()
-
     def save(self, commit=True):
         instance = super().save(commit=False)
-
-        # jdate = self.cleaned_data['date']
-        # print('000000000000000000000000000000000000000000000000')
-        # print(jdate)
-        # g_date = jdate.to_gregorian()
-        # instance.date = g_date
-
         if commit:
             instance.save()
         return instance
@@ -165,3 +153,52 @@ class CustomUserCreationForm(forms.ModelForm):
 
 
 
+
+
+
+class PayForm(forms.ModelForm):
+    class Meta:
+        model = Pay
+        fields = ['date', 'pay_type', 'personnel', 'source_type', 'bank', 'amount', 'description']
+        labels = {
+            'date': 'تاریخ',
+            'pay_type': 'نوع پرداخت',
+            'personnel': 'پرسنل',
+            'source_type': 'از',
+            'bank': 'حساب بانکی',
+            'amount': 'مبلغ',
+            'description': 'توضیحات'
+        }
+        widgets = {
+            'date': AdminJalaliDateWidget(attrs={'class': 'border p-2 rounded w-full'}),
+            'pay_type': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'personnel': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'source_type': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'bank': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'amount': forms.NumberInput(attrs={'class': 'border p-2 rounded w-full'}),
+            'description': forms.Textarea(attrs={'class': 'border p-2 rounded w-full'}),
+        }
+
+
+class ReceiptForm(forms.ModelForm):
+    class Meta:
+        model = Receipt
+        fields = ['date', 'receipt_type', 'customer', 'source_type', 'bank', 'amount', 'description']
+        labels = {
+            'date': 'تاریخ',
+            'receipt_type': 'نوع دریافت',
+            'customer': 'مشتری',
+            'source_type': 'به',
+            'bank': 'حساب بانکی',
+            'amount': 'مبلغ',
+            'description': 'توضیحات'
+        }
+        widgets = {
+            'date': AdminJalaliDateWidget(attrs={'class': 'border p-2 rounded w-full'}),
+            'receipt_type': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'customer': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'source_type': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'bank': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+            'amount': forms.NumberInput(attrs={'class': 'border p-2 rounded w-full'}),
+            'description': forms.Textarea(attrs={'class': 'border p-2 rounded w-full'}),
+        }
