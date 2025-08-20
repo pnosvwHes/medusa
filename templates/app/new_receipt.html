@@ -3,68 +3,87 @@
 {% load humanize %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto p-4 bg-white rounded-xl shadow-md mt-6">
+<style>
+  .receipt-form {
+    background-color: #ebfaf5ff; 
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+  }
+  .receipt-form input,
+  .receipt-form textarea,
+  .receipt-form select {
+    background-color: #ffffff !important; /* سفید کردن فیلدها */
+  }
+  .form-control {
+    min-height: 42px;
+  }
+  textarea.form-control {
+    min-height: 120px;
+  }
+</style>
+
+<div class="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-md mt-6 receipt-form">
   <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">ثبت دریافت جدید</h1>
-  
-  <form method="POST" id="receiptForm" class="space-y-6">
+
+  <form method="POST" id="receiptForm " class="space-y-4 receipt-form" >
     {% csrf_token %}
-    
-    <!-- ردیف اول: تاریخ و مبلغ -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+   {% if form.errors %}
+  <div class="text-red-600 mb-4">
+    لطفا خطاهای زیر را اصلاح کنید:
+    <ul>
+      {% for field in form %}
+        {% if field.errors %}
+          <li>
+            <strong>{{ field.label }}:</strong> {{ field.errors|join:", " }}
+            {% if field.data %}
+              (مقدار وارد شده: {{ field.data }})
+            {% endif %}
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+    <!-- تاریخ و مبلغ -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="form-group">
-        <label for="{{ form.date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-          {{ form.date.label }}
-        </label>
+        <label for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
         {{ form.date }}
       </div>
-
       <div class="form-group">
-        <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-          {{ form.amount.label }}
-        </label>
+        <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>
         {{ form.amount }}
       </div>
     </div>
 
-    <!-- ردیف دوم: نوع منبع و بانک (در صورت نیاز) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="sourceTypeRow">
+    <!-- نوع منبع و بانک -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="form-group">
-        <label for="{{ form.source_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-          {{ form.source_type.label }}
-        </label>
+        <label for="{{ form.source_type.id_for_label }}">{{ form.source_type.label }}</label>
         {{ form.source_type }}
       </div>
-
       <div class="form-group" id="bankField">
-        <label for="{{ form.bank.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-          {{ form.bank.label }}
-        </label>
+        <label for="{{ form.bank.id_for_label }}">{{ form.bank.label }}</label>
         {{ form.bank }}
       </div>
     </div>
 
-    <!-- ردیف سوم: نوع دریافت و مشتری (در صورت نیاز) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="receiptTypeRow">
+    <!-- نوع دریافت و مشتری -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="form-group">
-        <label for="{{ form.receipt_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-          {{ form.receipt_type.label }}
-        </label>
+        <label for="{{ form.receipt_type.id_for_label }}">{{ form.receipt_type.label }}</label>
         {{ form.receipt_type }}
       </div>
-
       <div class="form-group" id="customerField">
-        <label for="{{ form.customer.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-          {{ form.customer.label }}
-        </label>
+        <label for="{{ form.customer.id_for_label }}">{{ form.customer.label }}</label>
         {{ form.customer }}
       </div>
     </div>
 
     <!-- توضیحات -->
     <div class="form-group">
-      <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-        {{ form.description.label }}
-      </label>
+      <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
       {{ form.description }}
     </div>
 
@@ -81,13 +100,11 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-  // عناصر مورد نیاز
   const receiptTypeSelect = document.getElementById("id_receipt_type");
   const customerField = document.getElementById("customerField");
   const sourceTypeSelect = document.getElementById("id_source_type");
   const bankField = document.getElementById("bankField");
 
-  // داده‌های مورد نیاز از مدل‌ها
   const receiptTypeData = {
     {% for rt in form.receipt_type.field.queryset %}
       "{{ rt.id }}": {"is_customer": {{ rt.is_customer|yesno:"true,false" }}},
@@ -100,44 +117,89 @@ document.addEventListener("DOMContentLoaded", function() {
     {% endfor %}
   };
 
-  // تابع برای بررسی نوع دریافت و نمایش/مخفی کردن فیلد مشتری
   function toggleCustomerField() {
-    const selectedReceiptTypeId = receiptTypeSelect.value;
-    
-    if (selectedReceiptTypeId && receiptTypeData[selectedReceiptTypeId]?.is_customer) {
+    const selected = receiptTypeSelect.value;
+    const customerSelect = document.getElementById("id_customer");
+    if (selected && receiptTypeData[selected]?.is_customer) {
       customerField.style.display = "block";
+      if ($(customerSelect).data('select2')) {
+      $(customerSelect).select2('destroy');
+    }
+    $(customerSelect).select2({
+      width: "100%",
+      dir: "rtl",
+      placeholder: "انتخاب مشتری..."
+    });
     } else {
       customerField.style.display = "none";
       document.getElementById("id_customer").value = "";
+      if ($(customerSelect).data('select2')) {
+        $(customerSelect).select2('destroy');
+    }
     }
   }
 
-  // تابع برای بررسی نوع منبع و نمایش/مخفی کردن فیلد بانک
   function toggleBankField() {
-    const selectedSourceTypeId = sourceTypeSelect.value;
-    
-    if (selectedSourceTypeId && sourceTypeData[selectedSourceTypeId]?.requires_bank) {
-      bankField.style.display = "block";
-    } else {
-      bankField.style.display = "none";
-      document.getElementById("id_bank").value = "";
+  const selected = sourceTypeSelect.value;
+  const bankSelect = document.getElementById("id_bank");
+  if (selected && sourceTypeData[selected]?.requires_bank) {
+    bankField.style.display = "block";
+  if ($(bankSelect).data('select2')) {
+  $(bankSelect).select2('destroy');
+}
+$(bankSelect).select2({
+  width: "100%",
+  dir: "rtl",
+  placeholder: "انتخاب بانک..."
+});
+  }
+   else {
+    bankField.style.display = "none";
+    document.getElementById("id_bank").value = "";
+    if ($(bankSelect).data('select2')) {
+      $(bankSelect).select2('destroy');
     }
   }
+}
 
-  // رویدادهای تغییر
-  receiptTypeSelect.addEventListener("change", toggleCustomerField);
-  sourceTypeSelect.addEventListener("change", toggleBankField);
 
-  // مقداردهی اولیه
+  $(receiptTypeSelect).on('change.select2', toggleCustomerField);
+  $(sourceTypeSelect).on('change.select2', toggleBankField);
+
   toggleCustomerField();
   toggleBankField();
 
-  // Persian Datepicker برای فیلد تاریخ
+  // Persian Datepicker
   $("#id_date").persianDatepicker({
       format: 'YYYY/MM/DD',
       autoClose: true,
       initialValue: false
   });
+
+  // بررسی فرم قبل از submit
+  document.getElementById("receiptForm").addEventListener("submit", function(e) {
+    const selectedSource = sourceTypeSelect.value;
+    const selectedReceipt = receiptTypeSelect.value;
+    const bankValue = document.getElementById("id_bank").value;
+    const customerValue = document.getElementById("id_customer").value;
+
+    if (selectedSource && sourceTypeData[selectedSource]?.requires_bank && !bankValue) {
+      e.preventDefault();
+      alert("برای این نوع منبع، انتخاب حساب بانکی الزامی است");
+      bankField.style.display = "block";
+      document.getElementById("id_bank").focus();
+      return;
+    }
+
+    if (selectedReceipt && receiptTypeData[selectedReceipt]?.is_customer && !customerValue) {
+      e.preventDefault();
+      alert("برای این نوع دریافت، انتخاب مشتری الزامی است");
+      customerField.style.display = "block";
+      document.getElementById("id_customer").focus();
+      return;
+    }
+  });
 });
+
 </script>
 {% endblock %}

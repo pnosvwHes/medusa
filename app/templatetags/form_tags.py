@@ -9,9 +9,6 @@ def add_class(field, css):
     return field.as_widget(attrs={"class": css})
 
 
-
-register = template.Library()
-
 @register.filter
 def is_admin_user(user):
     if user is None:

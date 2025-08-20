@@ -1,4 +1,5 @@
 from django import forms
+import jdatetime
 from app.models import  *
 from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
@@ -152,10 +153,6 @@ class CustomUserCreationForm(forms.ModelForm):
         return user
 
 
-
-
-
-
 class PayForm(forms.ModelForm):
     class Meta:
         model = Pay
@@ -170,7 +167,7 @@ class PayForm(forms.ModelForm):
             'description': 'توضیحات'
         }
         widgets = {
-            'date': AdminJalaliDateWidget(attrs={'class': 'border p-2 rounded w-full'}),
+            'date': AdminJalaliDateWidget(attrs={'class': 'border p-2 rounded w-full autocomplete="new-password'}),
             'pay_type': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
             'personnel': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
             'source_type': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
@@ -178,6 +175,12 @@ class PayForm(forms.ModelForm):
             'amount': forms.NumberInput(attrs={'class': 'border p-2 rounded w-full'}),
             'description': forms.Textarea(attrs={'class': 'border p-2 rounded w-full'}),
         }
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if commit:
+            instance.save()
+        return instance
 
 
 class ReceiptForm(forms.ModelForm):
@@ -202,3 +205,16 @@ class ReceiptForm(forms.ModelForm):
             'amount': forms.NumberInput(attrs={'class': 'border p-2 rounded w-full'}),
             'description': forms.Textarea(attrs={'class': 'border p-2 rounded w-full'}),
         }
+
+    customer = forms.ModelChoiceField(queryset=Customer.objects.all(), required=False)
+    bank = forms.ModelChoiceField(queryset=Bank.objects.all(), required=False)
+
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if commit:
+            instance.save()
+        return instance
+    
+
+

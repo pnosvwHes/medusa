@@ -116,4 +116,24 @@
     </div>
   </div>
 </div>
+
+
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  $(document).ready(function () {
+    $("input[name='start_date'], input[name='end_date']").persianDatepicker({
+      format: 'YYYY/MM/DD',
+      autoClose: true,
+      initialValue: true,
+      calendarType: 'persian',
+      initialValueType: "persian", 
+      toolbox: {
+        calendarSwitch: {
+          enabled: false
+        }
+      }
+    });
+  });
+</script>
 {% endblock %}

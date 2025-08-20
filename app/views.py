@@ -17,6 +17,10 @@ from .utils import is_admin
 import jdatetime
 
 
+def to_persian_numbers(s):
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    return ''.join(persian_digits[int(ch)] if ch.isdigit() else ch for ch in str(s))
+
 
 @login_required
 def home (request):
@@ -41,7 +45,6 @@ class SaleListView(ListView):
     template_name = "app/sale_list.html"
     model = Sale
     context_object_name = "sales"
-    print('1')
     def get_queryset(self):
         selected_date_str = self.request.GET.get('date')
         
@@ -54,7 +57,7 @@ class SaleListView(ListView):
             else:
                 target_date = timezone.now().date()
 
-            print("Target date:", self.request.user.is_superuser, self.request.user.first_name)  # تست
+            
             # شرط برای ادمین
             if self.request.user.is_superuser:
                 sales = Sale.objects.filter(date__date=target_date).order_by('-date')
@@ -81,9 +84,6 @@ class SaleListView(ListView):
         context = super().get_context_data(**kwargs)
         today = timezone.now()
 
-        def to_persian_numbers(s):
-            persian_digits = '۰۱۲۳۴۵۶۷۸۹'
-            return ''.join(persian_digits[int(ch)] if ch.isdigit() else ch for ch in str(s))
 
         selected_date = self.request.GET.get('date')
         if selected_date:
@@ -191,6 +191,7 @@ class TransactionCreateView(CreateView):
     template_name = "app/new_transaction.html"
     form_class = TransactionForm
     success_url = reverse_lazy("home")
+    
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -199,39 +200,73 @@ class TransactionCreateView(CreateView):
         return response
     
 class PayCreateView(CreateView):
-    template_name = "app/new_transaction.html"  # می‌توانی قالب جدا هم بسازی
+    template_name = "app/new_pay.html"  # می‌توانی قالب جدا هم بسازی
     form_class = PayForm
     success_url = reverse_lazy("home")
-
+    source_types = PaymentMethod.objects.all()
+    pay_type = PayType.objects.all()
+    def persian_to_english(self, s):
+        persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+        english_digits = '0123456789'
+        return str(s).translate(str.maketrans(persian_digits, english_digits))
     def form_valid(self, form):
         response = super().form_valid(form)
         # پشتیبانی از Ajax
         if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            
             return JsonResponse({'pay_id': self.object.id})
-        return response
-
-
+        return response    
+    def post(self, request, *args, **kwargs):
+        data = request.POST.copy()
+        date_val = data.get('date')
+        if date_val:
+            try:
+                date_val = self.persian_to_english(date_val)
+                parts = list(map(int, date_val.split('/')))
+                import jdatetime
+                date_val = jdatetime.date(parts[0], parts[1], parts[2]).togregorian()
+                data['date'] = date_val
+            except:
+                pass
+        request.POST = data
+        return super().post(request, *args, **kwargs)
 class ReceiptCreateView(CreateView):
+    
     template_name = "app/new_receipt.html"  # می‌توانی قالب جدا هم بسازی
     form_class = ReceiptForm
     success_url = reverse_lazy("home")
     receipt_types = ReceiptType.objects.all()
     source_types = PaymentMethod.objects.all()
     
-    context = {
-        'receipt_types_json': json.dumps(
-            {str(rt.id): {'is_customer': rt.is_customer} for rt in receipt_types}
-        ),
-        'source_types_json': json.dumps(
-            {str(st.id): {'requires_bank': st.requires_bank} for st in source_types}
-        ),
-        }
+
     def form_valid(self, form):
         response = super().form_valid(form)
         # پشتیبانی از Ajax
         if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            
             return JsonResponse({'receipt_id': self.object.id})
         return response    
+    def persian_to_english(self, s):
+        persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+        english_digits = '0123456789'
+        return str(s).translate(str.maketrans(persian_digits, english_digits))
+    def post(self, request, *args, **kwargs):
+        data = request.POST.copy()
+        date_val = data.get('date')
+        if date_val:
+            try:
+                # تبدیل اعداد فارسی به انگلیسی
+                date_val = self.persian_to_english(date_val)
+                # تبدیل تاریخ شمسی به میلادی
+                parts = list(map(int, date_val.split('/')))
+                import jdatetime
+                date_val = jdatetime.date(parts[0], parts[1], parts[2]).togregorian()
+                data['date'] = date_val
+            except:
+                pass
+        request.POST = data
+        return super().post(request, *args, **kwargs)
+    
 @method_decorator(login_required, name='dispatch')
 @method_decorator(user_passes_test(lambda u: u.is_superuser), name='dispatch')  # یا تابع is_admin خودت
 class LedgerReportView(ListView):
@@ -262,7 +297,7 @@ class LedgerReportView(ListView):
         except (ValueError, TypeError):
             start_date = default_dates['default_start_date']
             end_date = default_dates['default_end_date']
-
+        print(start_date)
         # همه پرداخت‌ها و دریافت‌ها
         pay_qs = Pay.objects.select_related('pay_type', 'source_type', 'bank').all()
         receipt_qs = Receipt.objects.select_related('receipt_type', 'source_type', 'bank').all()
@@ -287,22 +322,28 @@ class LedgerReportView(ListView):
 
         # ادغام و مرتب‌سازی بر اساس تاریخ و id
         all_tx = sorted(pay_list + receipt_list, key=lambda x: (x['obj'].date, getattr(x['obj'], 'id', 0)))
+    
         return all_tx
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         default_dates = self.get_default_dates()
         bank_id = self.request.GET.get("bank")
-        start_date_str = self.request.GET.get("start", default_dates['default_start_date_str'])
-        end_date_str = self.request.GET.get("end", default_dates['default_end_date_str'])
-
+        start_date_str = self.request.GET.get("start_date", default_dates['default_start_date_str'])
+        end_date_str = self.request.GET.get("end_date", default_dates['default_end_date_str'])
+        print(start_date_str)
         try:
-            start_date = gdatetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date = gdatetime.strptime(end_date_str, '%Y-%m-%d').date()
+            start_date_str = start_date_str.replace('/','-')
+            start_date_j = jdatetime.date.fromisoformat(start_date_str)
+            start_date = start_date_j.togregorian()
+            # end_date = gdatetime.strptime(end_date_str, '%Y-%m-%d').date()
+            end_date_str = end_date_str.replace('/', '-')
+            end_date_j = jdatetime.date.fromisoformat(end_date_str)
+            end_date = end_date_j.togregorian()
         except (ValueError, TypeError):
             start_date = default_dates['default_start_date']
             end_date = default_dates['default_end_date']
-
+        print (start_date)
         # موجودی اولیه
         opening_balance = 0
         if bank_id:
@@ -313,21 +354,23 @@ class LedgerReportView(ListView):
             opening_balance -= sum(r.amount for r in Receipt.objects.filter(date__lt=start_date))
 
         running_balance = opening_balance
-        total_amount = 0
+        total_amount = opening_balance
         increase_count = 0
         decrease_count = 0
-        rows = [{
-            "tx": type("Tx", (), {
-                "date": start_date,
-                "type": type("TType", (), {"name": "مانده اولیه"}),
-                "amount": opening_balance,
-                "description": ""
-            })(),
-            "balance": opening_balance,
-            "amount_with_effect": None,
-            "is_opening": True
-        }]
-
+        if opening_balance != 0:
+            rows = [{
+                "tx": type("Tx", (), {
+                    "date": start_date,
+                    "transaction_type": type("TType", (), {"name": "مانده اولیه"})(),
+                    "amount": opening_balance,
+                    "description": ""
+                })(),
+                "balance": opening_balance,
+                "amount_with_effect": None,
+                "is_opening": True
+            }]
+        else :
+            rows = []
         for item in context["transactions"]:
             tx = item['obj']
             amount_with_effect = item['amount']
@@ -426,8 +469,7 @@ def create_appointment(request):
 
             # تبدیل رشته‌ها به datetime
             try:
-                print('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
-                print(datetime, type(datetime))
+                
                 start_time = gdatetime.fromisoformat(start_time_str)
                 end_time = gdatetime.fromisoformat(end_time_str)
             except ValueError as e:

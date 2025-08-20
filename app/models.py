@@ -40,13 +40,13 @@ class Customer(models.Model):
         return self.sale_set.count()
 
 class Sale(models.Model):
-    customer = models.ForeignKey("Customer", on_delete=models.CASCADE)
-    personnel = models.ForeignKey("Personnel", on_delete=models.CASCADE)
+    customer = models.ForeignKey("Customer", on_delete=models.PROTECT)
+    personnel = models.ForeignKey("Personnel", on_delete=models.PROTECT)
     price = models.IntegerField(default=0)
     date = models.DateTimeField(default=timezone.now)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    work = models.ForeignKey("Work" , on_delete=  models.CASCADE)
+    work = models.ForeignKey("Work" , on_delete=  models.PROTECT)
     commission_percentage = models.IntegerField(default=60)
     commission_amount = models.IntegerField(default=0)
     
@@ -94,8 +94,8 @@ class Bank(models.Model):
 
 
 class Payment(models.Model):
-    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="payments")
-    method = models.ForeignKey(PaymentMethod, on_delete=models.CASCADE)
+    sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name="payments")
+    method = models.ForeignKey(PaymentMethod, on_delete=models.PROTECT)
     bank = models.ForeignKey(Bank, null=True, blank=True, on_delete=models.SET_NULL)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -115,8 +115,8 @@ class TransactionType(models.Model):
         return self.name
 
 class Transaction(models.Model):
-    transaction_type = models.ForeignKey(TransactionType, on_delete=models.CASCADE)  # دریافت یا پرداخت
-    source_type = models.ForeignKey(PaymentMethod, on_delete=models.CASCADE)  # نقدی یا بانکی
+    transaction_type = models.ForeignKey(TransactionType, on_delete=models.PROTECT)  # دریافت یا پرداخت
+    source_type = models.ForeignKey(PaymentMethod, on_delete=models.PROTECT)  # نقدی یا بانکی
     bank = models.ForeignKey(Bank, null=True, blank=True, on_delete=models.SET_NULL)
     amount = models.DecimalField(max_digits=12, decimal_places=0)
     description = models.TextField(blank=True, null=True)
@@ -130,16 +130,16 @@ class Transaction(models.Model):
     
 
 class PersonnelCommission(models.Model):
-    personnel = models.ForeignKey("Personnel", on_delete=models.CASCADE)
-    work = models.ForeignKey("Work" , on_delete=  models.CASCADE)
+    personnel = models.ForeignKey("Personnel", on_delete=models.PROTECT)
+    work = models.ForeignKey("Work" , on_delete=  models.PROTECT)
     percentage = models.IntegerField(default=60)
     start_date = models.DateField()
     end_date = models.DateField()
 
 
 class PersonnelUser(models.Model):
-    personnel = models.OneToOneField(Personnel, on_delete=models.CASCADE, related_name='user_profile')
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='personnel_profile')
+    personnel = models.OneToOneField(Personnel, on_delete=models.PROTECT, related_name='user_profile')
+    user = models.OneToOneField(User, on_delete=models.PROTECT, related_name='personnel_profile')
     is_admin = models.BooleanField(default=False)
 
     def __str__(self):
@@ -149,9 +149,9 @@ class PersonnelUser(models.Model):
         return self.personnel
     
 class Appointment(models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='appointments')
-    work = models.ForeignKey(Work, on_delete=models.CASCADE)
-    personnel = models.ForeignKey(Personnel, on_delete=models.CASCADE)
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='appointments')
+    work = models.ForeignKey(Work, on_delete=models.PROTECT)
+    personnel = models.ForeignKey(Personnel, on_delete=models.PROTECT)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField(blank=True)
     is_paid = models.BooleanField(default=False)
@@ -179,18 +179,18 @@ class PayType(models.Model):
 
 # مدل پرداخت
 class Pay(models.Model):
-    source_type = models.ForeignKey("PaymentMethod", on_delete=models.CASCADE)
+    source_type = models.ForeignKey("PaymentMethod", on_delete=models.PROTECT)
     bank = models.ForeignKey("Bank", null=True, blank=True, on_delete=models.SET_NULL)
     amount = models.DecimalField(max_digits=12, decimal_places=0)
     description = models.TextField(blank=True, null=True)
     date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-    pay_type = models.ForeignKey(PayType, on_delete=models.CASCADE)
+    pay_type = models.ForeignKey(PayType, on_delete=models.PROTECT)
     personnel = models.ForeignKey(
         "Personnel",
         null=True, blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="payments_received"
     )
 
@@ -209,19 +209,19 @@ class ReceiptType(models.Model):
 
 # مدل دریافت
 class Receipt(models.Model):
-    source_type = models.ForeignKey("PaymentMethod", on_delete=models.CASCADE)
+    source_type = models.ForeignKey("PaymentMethod", on_delete=models.PROTECT)
     bank = models.ForeignKey("Bank", null=True, blank=True, on_delete=models.SET_NULL)
     amount = models.DecimalField(max_digits=12, decimal_places=0)
     description = models.TextField(blank=True, null=True)
     date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
-
-    receipt_type = models.ForeignKey(ReceiptType, on_delete=models.CASCADE)
+    sale = models.ForeignKey("Sale", on_delete=models.CASCADE, blank=True, null=True)
+    receipt_type = models.ForeignKey(ReceiptType, on_delete=models.PROTECT)
     customer = models.ForeignKey(
         "Customer",
         null=True, blank=True,
-        on_delete=models.CASCADE,
-        related_name="receipts_made"
+        on_delete=models.PROTECT,
+        related_name="receipts_made"        
     )
 
     def __str__(self):
