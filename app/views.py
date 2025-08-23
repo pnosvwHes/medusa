@@ -3,18 +3,26 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render,redirect
 from django.urls import reverse_lazy
 from app.models import *
-from django.views.generic import CreateView,ListView,UpdateView,DeleteView
+from django.views.generic import CreateView, ListView, UpdateView, DeleteView, TemplateView
 from django.contrib import messages
 from django.utils import timezone
 from jalali_date import datetime2jalali
-from django.db.models import Sum, F, Q
+from django.db.models import Sum, F, Q, Count
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime as gdatetime, timedelta
 from app.forms import *
 from django.contrib.auth.decorators import login_required,user_passes_test
 from django.utils.decorators import method_decorator
-from .utils import is_admin
+from .utils import is_admin,compress_image
 import jdatetime
+import pandas as pd
+from app.mixins import UserTrackMixin
+from django.db.models.functions import TruncDate
+from .sms import customer_sms, personnel_sms, send_sms
+
+MAX_IMAGES = 4
+MAX_SIZE = (1024, 1024)  # طول یا عرض حداکثر
+JPEG_QUALITY = 75        # کیفیت JPEG
 
 
 def to_persian_numbers(s):
@@ -28,12 +36,25 @@ def home (request):
     return render(request, "app/home.html", {"sales": sales})
 
  
-class SaleCreateView(CreateView):
+
+class SaleCreateView(CreateView, UserTrackMixin):
     template_name = "app/new_sale.html"
     form_class = SaleForm
     success_url = reverse_lazy("home")
 
     def form_valid(self, form):
+        self.object = form.save()
+        before_images = self.request.FILES.getlist("images_before")
+        for img in before_images[:1]:
+            compressed = compress_image(img)
+            SaleImage.objects.create(sale=self.object, image=compressed, image_type=SaleImage.BEFORE)
+        
+        after_images  = self.request.FILES.getlist("images_after")
+        for img in after_images [:3]:
+            compressed = compress_image(img)
+            SaleImage.objects.create(sale=self.object, image=compressed, image_type=SaleImage.AFTER)
+        
+
         response = super().form_valid(form)
         if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'sale_id': self.object.id})
@@ -101,14 +122,42 @@ class SaleListView(ListView):
         context['total_price'] = total_price
 
         return context
-
-class SaleUpdateView(UpdateView):
+class SaleUpdateView(UserTrackMixin, UpdateView):
     template_name = "app/edit_sale.html" 
     model = Sale
     fields=["customer", "personnel", "work", "price", "date"]
     success_url = reverse_lazy("home")
     context_object_name="sale"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        images = self.object.images.all()
+        context['images'] = images
+        context['empty_slots'] = MAX_IMAGES - images.count()
+        return context
+
+    def form_valid(self, form):
+        self.object = form.save()
+        existing_count = self.object.images.count()
+        remaining_slots = MAX_IMAGES - existing_count
+        images = self.request.FILES.getlist("images")
+        for img in images[:remaining_slots]:
+            compressed = compress_image(img)
+            SaleImage.objects.create(sale=self.object, image=compressed)
+        return super().form_valid(form)
+
+@csrf_exempt
+def delete_sale_image(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        image_id = data.get('image_id')
+        try:
+            img = SaleImage.objects.get(id=image_id)
+            img.image.delete()  # حذف فایل از دیسک
+            img.delete()        # حذف ردیف از دیتابیس
+            return JsonResponse({'status': 'ok'})
+        except SaleImage.DoesNotExist:
+            return JsonResponse({'status': 'error'})
 class SaleDeleteView(DeleteView):
     template_name = "app/delete_sale.html" 
     model = Sale
@@ -128,14 +177,40 @@ class CustomerListView(ListView):
         return queryset.all() 
 
 
+
 class CustomerCreateView(CreateView):
-    template_name = "app/new_customer.html" 
-    model = Customer
-    fields=["name", "mobile"]
+    template_name = "app/new_customer.html"
+    form_class = CustomerForm
     success_url = reverse_lazy("customers")
+
+    def post(self, request, *args, **kwargs):
+        # اگر آپلود اکسل بود
+        if "import_excel" in request.POST and request.FILES.get("excel_file"):
+            excel_file = request.FILES["excel_file"]
+            try:
+                df = pd.read_excel(excel_file)
+                for _, row in df.iterrows():
+                    Customer.objects.update_or_create(
+                        mobile=row['mobile'],
+                        defaults={'name': row['name']}
+                    )
+                messages.success(request, "مشتریان با موفقیت از اکسل وارد شدند.")
+            except Exception as e:
+                messages.error(request, f"خطا در وارد کردن فایل: {e}")
+            return self.get(request, *args, **kwargs)
+
+        # ثبت فرم تک‌تک مشتری
+        return super().post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'customer_id': self.object.id})
+        return response
+
 class CustomerUpdateView(UpdateView):
     template_name = "app/edit_customer.html" 
-    model = Customer
+    model = CustomerForm
     fields=["name", "mobile", "black_list", "black_list_reason"]
     success_url = reverse_lazy("customers")
     context_object_name="customer"
@@ -202,7 +277,7 @@ class TransactionCreateView(CreateView):
 class PayCreateView(CreateView):
     template_name = "app/new_pay.html"  # می‌توانی قالب جدا هم بسازی
     form_class = PayForm
-    success_url = reverse_lazy("home")
+    success_url = reverse_lazy("pay_list")
     source_types = PaymentMethod.objects.all()
     pay_type = PayType.objects.all()
     def persian_to_english(self, s):
@@ -234,7 +309,7 @@ class ReceiptCreateView(CreateView):
     
     template_name = "app/new_receipt.html"  # می‌توانی قالب جدا هم بسازی
     form_class = ReceiptForm
-    success_url = reverse_lazy("home")
+    success_url = reverse_lazy("receipt_list")
     receipt_types = ReceiptType.objects.all()
     source_types = PaymentMethod.objects.all()
     
@@ -266,7 +341,20 @@ class ReceiptCreateView(CreateView):
                 pass
         request.POST = data
         return super().post(request, *args, **kwargs)
-    
+
+
+class PayListView(ListView):
+    model = Pay
+    template_name = 'app/pay_list.html'  # مسیر قالب
+    context_object_name = 'pays'
+    paginate_by = 50  # اگر خواستی صفحه‌بندی
+
+class ReceiptListView(ListView):
+    model = Receipt
+    template_name = 'app/receipt_list.html'
+    context_object_name = 'receipts'
+    paginate_by = 50
+
 @method_decorator(login_required, name='dispatch')
 @method_decorator(user_passes_test(lambda u: u.is_superuser), name='dispatch')  # یا تابع is_admin خودت
 class LedgerReportView(ListView):
@@ -413,6 +501,60 @@ class LedgerReportView(ListView):
         })
         return context
 
+
+class TreasuryDashboardView(ListView):
+    template_name = "app/treasury_dashboard.html"
+    context_object_name = "methods"
+
+    def get_queryset(self):
+        methods = []
+
+        # تمام روش‌های پرداخت
+        payment_methods = PaymentMethod.objects.all()
+
+        for method in payment_methods:
+            if method.requires_bank:
+                # برای هر حساب بانکی
+                for bank in Bank.objects.all():
+                    # محاسبه موجودی و آخرین تاریخ
+                    total_receipt = Receipt.objects.filter(source_type=method, bank=bank).aggregate(total=models.Sum('amount'))['total'] or 0
+                    total_pay = Pay.objects.filter(source_type=method, bank=bank).aggregate(total=models.Sum('amount'))['total'] or 0
+                    balance = total_receipt - total_pay
+
+                    last_tx_date_receipt = Receipt.objects.filter(source_type=method, bank=bank).order_by('-date').first()
+                    last_tx_date_pay = Pay.objects.filter(source_type=method, bank=bank).order_by('-date').first()
+                    last_tx_date = max(filter(None, [last_tx_date_receipt.date if last_tx_date_receipt else None,
+                                                     last_tx_date_pay.date if last_tx_date_pay else None]), default=None)
+
+                    methods.append({
+                        "name": f"{method.name} - {bank.name}",
+                        "balance": balance,
+                        "last_tx_date": last_tx_date,
+                        "payment_method_id": method.id,
+                        "bank_id": bank.id,
+                    })
+            else:
+                # نقد
+                total_receipt = Receipt.objects.filter(source_type=method, bank__isnull=True).aggregate(total=models.Sum('amount'))['total'] or 0
+                total_pay = Pay.objects.filter(source_type=method, bank__isnull=True).aggregate(total=models.Sum('amount'))['total'] or 0
+                balance = total_receipt - total_pay
+
+                last_tx_date_receipt = Receipt.objects.filter(source_type=method, bank__isnull=True).order_by('-date').first()
+                last_tx_date_pay = Pay.objects.filter(source_type=method, bank__isnull=True).order_by('-date').first()
+                last_tx_date = max(filter(None, [last_tx_date_receipt.date if last_tx_date_receipt else None,
+                                                 last_tx_date_pay.date if last_tx_date_pay else None]), default=None)
+
+                methods.append({
+                    "name": method.name,
+                    "balance": balance,
+                    "last_tx_date": last_tx_date,
+                    "payment_method_id": method.id,
+                    "bank_id": None,
+                })
+
+        return methods
+
+
 @login_required
 @user_passes_test(is_admin)
 def create_user_view(request):
@@ -466,7 +608,7 @@ def create_appointment(request):
                     'status': 'error',
                     'message': 'لطفاً تمام فیلدهای ضروری را پر کنید'
                 }, status=400)
-
+            print ("AAAAAAA")
             # تبدیل رشته‌ها به datetime
             try:
                 
@@ -500,6 +642,23 @@ def create_appointment(request):
                 start_time=start_time,
                 end_time=end_time
             )
+            
+            customer_mobile = appointment.customer.mobile
+            customer_name = appointment.customer.fname
+            customer_full_name = appointment.customer.name
+            work = appointment.work.work_name
+            appointment_time=appointment.start_time
+            personnel_name = appointment.personnel.fname
+
+            
+            customer_msg = customer_sms(customer_name, work, appointment_time)
+            send_sms(customer_mobile, customer_msg)
+
+            # ===== ارسال پیامک به پرسنل =====
+            personnel_mobile = appointment.personnel.mobile
+            personnel_msg = personnel_sms(personnel_name, customer_full_name, appointment_time)
+            send_sms(personnel_mobile, personnel_msg)
+
 
             return JsonResponse({
                 'status': 'success',
@@ -662,3 +821,165 @@ def personnel_works(request):
         for c in commissions
     ]
     return JsonResponse(data, safe=False)
+
+@login_required
+def gallery_view(request):
+    images = SaleImage.objects.all()
+    
+    # فیلتر بر اساس پرسنل اگر کاربر ادمین نیست
+    if not request.user.is_superuser:
+        try:
+            personnel_user = PersonnelUser.objects.get(user=request.user)
+            personnel = personnel_user.personnel
+            images = images.filter(sale__personnel=personnel)
+        except PersonnelUser.DoesNotExist:
+            images = SaleImage.objects.none()
+    
+    # فیلتر بر اساس مشتری (از طریق پارامتر GET)
+    customer_filter = request.GET.get('customer')
+    if customer_filter:
+        images = images.filter(sale__customer__id=customer_filter)
+    
+    # فیلتر بر اساس پرسنل (از طریق پارامتر GET)
+    personnel_filter = request.GET.get('personnel')
+    if personnel_filter and request.user.is_superuser:
+        images = images.filter(sale__personnel__id=personnel_filter)
+    
+    # در نهایت فقط عکس‌های "بعد"
+    images = images.filter(image_type=SaleImage.AFTER)
+    
+    # دریافت لیست مشتریان و پرسنل برای فیلترها
+    from .models import Customer, Personnel
+    customers = Customer.objects.all()
+    personnel_list = Personnel.objects.all() if request.user.is_superuser else []
+    
+    context = {
+        'images': images,
+        'customers': customers,
+        'personnel_list': personnel_list,
+        'selected_customer': customer_filter,
+        'selected_personnel': personnel_filter,
+    }
+    
+    return render(request, 'app/gallery.html', context)
+
+class HomeDashboardView(TemplateView):
+    template_name = "app/home_dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        is_super = user.is_superuser
+
+        personnel = None
+        if not is_super:
+            try:
+                personnel = user.personnel_profile.personnel
+            except:
+                personnel = None
+
+        # آخرین ۳۰ روز
+        today = timezone.now().date()
+        last_30_days = [today - timezone.timedelta(days=i) for i in range(29, -1, -1)]
+
+        # ===== 1. مانده پرداخت‌ها =====
+        balances_chart = []
+
+        if is_super:
+            payment_methods = PaymentMethod.objects.all()
+            balances = {}
+            for method in payment_methods:
+                if method.requires_bank:
+                    for bank in Bank.objects.all():
+                        line_data = []
+                        for d in last_30_days:
+                            pays = Pay.objects.filter(date=d, source_type=method, bank=bank)
+                            total = pays.aggregate(total=Sum("amount"))["total"] or 0
+                            line_data.append({
+                                "date": jdatetime.date.fromgregorian(date=d).strftime("%Y-%m-%d"),
+                                "balance": int(total)
+                            })
+                        balances[method.name + " - " + bank.name] = line_data
+                else:
+                    line_data = []
+                    for d in last_30_days:
+                        pays = Pay.objects.filter(date=d, source_type=method, bank__isnull=True)
+                        total = pays.aggregate(total=Sum("amount"))["total"] or 0
+                        line_data.append({
+                            "date": jdatetime.date.fromgregorian(date=d).strftime("%Y-%m-%d"),
+                            "balance": int(total)
+                        })
+                    balances[method.name] = line_data
+
+            for key, data in balances.items():
+                balances_chart.append({"name": key, "data": data})
+
+        else:
+            line_data = []
+            for d in last_30_days:
+                pays = Pay.objects.filter(date=d, personnel=personnel)
+                total = int(pays.aggregate(total=Sum("amount"))["total"]) or 0
+                line_data.append({
+                    "date": jdatetime.date.fromgregorian(date=d).strftime("%Y-%m-%d"),
+                    "balance": total
+                })
+            balances_chart = [{"name": "پرداخت‌ها", "data": line_data}]
+
+        context["balances_chart"] = balances_chart
+
+        # ===== 2. فروش روزانه =====
+        sales = Sale.objects.all()
+        if not is_super and personnel:
+            sales = sales.filter(personnel=personnel)
+
+        daily_sales = (
+            sales.annotate(day=TruncDate("date"))
+                 .values("day")
+                 .annotate(commission=Sum("commission_amount"), total=Sum("price"))
+                 .order_by("day")
+        )
+        sales_chart = []
+        for row in daily_sales:
+            sales_chart.append({
+                "date": jdatetime.date.fromgregorian(date=row["day"]).strftime("%Y-%m-%d"),
+                "commission": int(row["commission"]) or 0,
+                "remainder": ((int(row["total"]) or 0) - (int(row["commission"]) or 0)) if is_super else 0
+            })
+        context["sales_chart"] = sales_chart
+
+        # ===== 3. رزروها =====
+        appointments = Appointment.objects.all()
+        if not is_super and personnel:
+            appointments = appointments.filter(personnel=personnel)
+
+        daily_appts = (
+            appointments.annotate(day=TruncDate("start_time"))
+                        .values("day")
+                        .annotate(count=Count("id"))
+                        .order_by("day")
+        )
+        appt_chart = []
+        for row in daily_appts:
+            appt_chart.append({
+                "date": jdatetime.date.fromgregorian(date=row["day"]).strftime("%Y-%m-%d"),
+                "count": row["count"]
+            })
+        context["appt_chart"] = appt_chart
+
+        # ===== 4. تعداد فاکتورها =====
+        sales_count = (
+            sales.annotate(day=TruncDate("date"))
+                 .values("day")
+                 .annotate(count=Count("id"))
+                 .order_by("day")
+        )
+        sales_count_chart = []
+        for row in sales_count:
+            sales_count_chart.append({
+                "date": jdatetime.date.fromgregorian(date=row["day"]).strftime("%Y-%m-%d"),
+                "count": row["count"]
+            })
+        context["sales_count_chart"] = sales_count_chart
+
+        context["is_super"] = is_super
+        return context

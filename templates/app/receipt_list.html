@@ -1,0 +1,36 @@
+{% extends 'app/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="form-report bg-formreport">
+    <h2>لیست دریافت‌ها</h2>
+    <table class="table-auto w-full border">
+        <thead>
+            <tr>
+                <th>تاریخ</th>
+                <th>نوع دریافت</th>
+                <th>مشتری</th>
+                <th>مبلغ</th>
+                <th>حساب بانکی</th>
+                {% comment %} <th>توضیحات</th> {% endcomment %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for receipt in receipts %}
+            <tr>
+                <td>{{ receipt.date|date:"Y-m-d" }}</td>
+                <td>{{ receipt.receipt_type }}</td>
+                <td>{{ receipt.customer }}</td>
+                <td>{{ receipt.amount|intcomma }}</td>
+                <td>{{ receipt.bank }}</td>
+                {% comment %} <td>{{ receipt.description }}</td> {% endcomment %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">هیچ رکوردی یافت نشد</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

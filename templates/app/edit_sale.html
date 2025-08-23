@@ -1,11 +1,140 @@
 {% extends "app/base.html" %}
 
 {% block content %}
-    <h1>ویرایش فاکتور</h1>
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">ذخیره</button>
-    </form>
-    <a href="{% url 'home' %}"> کنسل </a>
+<h1 class="flex-center mb-6 text-2xl font-bold">ویرایش فاکتور</h1>
+
+<form method="POST" enctype="multipart/form-data" class="form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <!-- کارت‌های عکس موجود -->
+    <div id="imageCards" class="grid grid-cols-2 gap-4 mt-4">
+        {% for img in images %}
+        <div class="relative image-card" data-id="{{ img.id }}" data-type="{{ img.type }}">
+            <span class="absolute top-1 left-1 bg-white text-xs px-1 rounded">
+                {% if img.type == 'before' %}قبل{% else %}بعد{% endif %}
+            </span>
+            <img src="{{ img.image.url }}" class="w-full h-40 object-cover rounded-lg cursor-pointer preview-img">
+            <button type="button" class="absolute top-1 right-1 bg-red-500 text-white px-2 py-1 rounded remove-image-btn" data-id="{{ img.id }}">حذف</button>
+            <input type="file" name="images" class="hidden file-input" accept="image/*">
+        </div>
+        {% endfor %}
+
+        <!-- کارت‌های خالی -->
+        {% for i in empty_slots|make_list %}
+        <div class="relative image-card empty-card" data-type="{% if forloop.first %}before{% else %}after{% endif %}">
+            <span class="absolute inset-0 flex justify-center items-center text-gray-400 font-bold text-xl cursor-pointer">+</span>
+            <input type="file" name="images" class="hidden file-input" accept="image/*">
+        </div>
+        {% endfor %}
+    </div>
+
+    <button type="submit" class="button primary mt-4">ذخیره</button>
+    <a href="{% url 'home' %}" class="button secondary mt-4">کنسل</a>
+</form>
+
+<script>
+const imageCards = document.getElementById('imageCards');
+
+function updateAddButtons() {
+    const emptyCards = Array.from(imageCards.querySelectorAll('.empty-card'));
+    emptyCards.forEach((card, i) => {
+        if(i === 0) card.querySelector('span').style.display = 'flex';
+        else card.querySelector('span').style.display = 'none';
+    });
+}
+
+// باز کردن فایل
+imageCards.addEventListener('click', function(e){
+    if(e.target.classList.contains('empty-card') || e.target.tagName === 'SPAN'){
+        const card = e.target.closest('.image-card');
+        card.querySelector('.file-input').click();
+    } else if(e.target.classList.contains('preview-img')){
+        window.open(e.target.src, '_blank');
+    }
+});
+
+// پیش‌نمایش فایل جدید
+imageCards.addEventListener('change', function(e){
+    if(e.target.classList.contains('file-input')){
+        const file = e.target.files[0];
+        if(!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(ev){
+            const card = e.target.closest('.image-card');
+            card.innerHTML = `
+                <span class="absolute top-1 left-1 bg-white text-xs px-1 rounded">
+                    ${card.dataset.type === 'before' ? 'قبل' : 'بعد'}
+                </span>
+                <img src="${ev.target.result}" class="w-full h-40 object-cover rounded-lg cursor-pointer preview-img">
+                <input type="file" name="images" class="hidden file-input" accept="image/*">
+            `;
+            addRemoveListener(card);
+            addEmptyCardIfNeeded();
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+// اضافه کردن کارت خالی
+function addEmptyCardIfNeeded(){
+    const cards = imageCards.querySelectorAll('.image-card');
+    if(cards.length < 4){
+        const div = document.createElement('div');
+        div.classList.add('relative', 'image-card', 'empty-card');
+        div.dataset.type = cards.length === 0 ? 'before' : 'after';
+        div.innerHTML = `<span class="absolute inset-0 flex justify-center items-center text-gray-400 font-bold text-xl cursor-pointer">+</span>
+                         <input type="file" name="images" class="hidden file-input" accept="image/*">`;
+        imageCards.appendChild(div);
+    }
+    updateAddButtons();
+}
+
+// حذف عکس‌ها
+function addRemoveListener(card){
+    const btn = card.querySelector('.remove-image-btn');
+    if(btn){
+        btn.addEventListener('click', function(){
+            const imageId = btn.dataset.id;
+            fetch("{% url 'delete_sale_image' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 'image_id': imageId })
+            }).then(res => res.json())
+              .then(data => {
+                  if(data.status === 'ok'){
+                      card.remove();
+                      addEmptyCardIfNeeded();
+                  }
+              });
+        });
+    }
+}
+
+document.querySelectorAll('.image-card').forEach(addRemoveListener);
+updateAddButtons();
+</script>
+
+<style>
+.image-card {
+    border: 2px dashed #ccc;
+    border-radius: 0.5rem;
+    position: relative;
+    height: 160px;
+    overflow: hidden;
+}
+.image-card.empty-card span {
+    font-size: 2rem;
+}
+.preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+</style>
+
 {% endblock content %}

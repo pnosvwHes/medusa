@@ -3,7 +3,8 @@ from app.views import *
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
-    path("", SaleListView.as_view(), name="home"),
+    path("", HomeDashboardView.as_view(), name="home"),
+    path("sales/", SaleListView.as_view(), name="sales"),
     path("sale/new/", SaleCreateView.as_view(), name="create_sale"),
     path("sale/<int:pk>/update", SaleUpdateView.as_view(), name="update_sale"),
     path("sale/<int:pk>/delete", SaleDeleteView.as_view(), name="delete_sale"),
@@ -29,4 +30,9 @@ urlpatterns = [
     path('booking/update/<int:pk>/', update_appointment, name='update_appointment'),
     path('booking/delete/<int:pk>/', delete_appointment, name='delete_appointment'),
     path('booking/personnel_works/', personnel_works, name='personnel_works'),
+    path('pays/', PayListView.as_view(), name='pay_list'),
+    path('receipts/', ReceiptListView.as_view(), name='receipt_list'),
+    path('treasury-dashboard/', TreasuryDashboardView.as_view(), name='treasury_dashboard'),
+    path('sale_image/delete/', delete_sale_image, name='delete_sale_image'),
+    path('gallery/', gallery_view, name='gallery')
 ]

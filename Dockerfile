@@ -7,12 +7,13 @@ WORKDIR /code
 
 RUN pip install poetry
 
-COPY pyproject.toml poetry.lock* /app/ ./
+COPY pyproject.toml poetry.lock* /code/
 
 RUN poetry install --no-root
 
-COPY . .
-# RUN chmode 755 /code/start-django.sh
+COPY . /code/
+
+# RUN chmod 755 /code/start-django.sh
 EXPOSE 8000
 
 ENTRYPOINT [ "/code/start-django.sh" ]

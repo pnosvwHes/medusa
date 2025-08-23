@@ -1,10 +1,77 @@
 {% extends "app/base.html" %}
 
 {% block content %}
-    <h1>ثبت مشتری</h1>
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">ذخیره</button>
-    </form>
-{% endblock content %}
+<h1 class="text-2xl font-bold mb-6">ثبت مشتری جدید</h1>
+
+<form method="POST" enctype="multipart/form-data" class="form-data mb-6">
+    {% csrf_token %}
+    <div class="flex items-center gap-4">
+        <!-- فایل واقعی مخفی -->
+        <input type="file" name="excel_file" id="excel_file" class="hidden">
+        <!-- دکمه نمایشی -->
+        <label for="excel_file" class="button secondary cursor-pointer">
+            انتخاب فایل اکسل
+        </label>
+        <button type="submit" name="import_excel" class="button secondary">خواندن از اکسل</button>
+    </div>
+</form>
+<!-- فرم ثبت تک‌تک مشتری -->
+<form method="POST" class="form-data">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <div class="form-group">
+            <label for="{{ form.fname.id_for_label }}">{{ form.fname.label }}</label>
+            {{ form.fname }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.lname.id_for_label }}">{{ form.lname.label }}</label>
+            {{ form.lname }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.mobile.id_for_label }}">{{ form.mobile.label }}</label>
+            {{ form.mobile }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.birth_day.id_for_label }}">{{ form.birth_day.label }}</label>
+            {{ form.birth_day }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.region.id_for_label }}">{{ form.region.label }}</label>
+            {{ form.region }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.referrer.id_for_label }}">{{ form.referrer.label }}</label>
+            {{ form.referrer }}
+        </div>
+    </div>
+
+    <button type="submit" class="button primary mt-4">ذخیره</button>
+</form>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+$(document).ready(function() {
+    // select2 برای فیلد معرف
+    $('.select2').select2({
+        width: '100%',
+        placeholder: 'انتخاب کنید',
+        allowClear: true
+    });
+
+    // Jalali DatePicker
+    $("#id_birth_day").persianDatepicker({
+        format: 'YYYY-MM-DD',
+        initialValue: false,
+        autoClose: true
+    });
+});
+</script>
+{% endblock %}

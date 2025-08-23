@@ -3,9 +3,9 @@
 
 {% block content %}
 <div class="flex justify-center items-center min-h-screen bg-gray-100">
-  <div class="bg-white shadow-md rounded-xl p-6 w-full max-w-2xl mx-4">
+  <div class="shadow-md rounded-xl p-6 w-full max-w-2xl mx-4 form-data">
     <h1 class="text-2xl font-bold mb-6 text-center">ثبت فاکتور جدید</h1>
-    <form method="POST" id="saleForm">
+    <form method="POST" id="saleForm" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         {% for field in form %}
@@ -48,13 +48,47 @@
             </div>
           </div>
         </div>
-      </div>
+
+<div class="col-span-1 md:col-span-2">
+  <label class="block text-gray-700 mb-2">عکس‌های فاکتور</label>
+  
+  <div id="imageContainer" class="grid grid-cols-2 gap-4 items-start">
+    <!-- کارت قبل -->
+    <div class="relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer" data-type="before">
+      <span class="text-gray-400 mb-1">قبل</span>
+      <img class="w-full h-full object-cover rounded hidden" />
+      <input type="file" accept="image/*" class="hidden imageInput" name="images_before" >
+    </div>
+
+    <!-- کارت بعد -->
+    <div class="relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer" data-type="after">
+      <span class="text-gray-400 mb-1">بعد</span>
+      <img class="w-full h-full object-cover rounded hidden" />
+      <input type="file" accept="image/*" class="hidden imageInput" name="images_after">
+    </div>
+
+    <!-- دکمه + -->
+    <div id="addCardBtn" class="flex items-center justify-center border border-gray-300 rounded h-32 text-gray-500 cursor-pointer text-2xl font-bold">
+      +
+    </div>
+  </div>
+
+  <p class="text-gray-500 text-sm mt-1">حداکثر ۴ کارت عکس مجاز است</p>
+</div>
+
+<!-- Modal بزرگنمایی عکس -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50">
+  <img id="modalImage" class="max-w-full max-h-full rounded shadow-lg" />
+</div>
+
+
       <div class="mt-6 flex justify-end gap-4">
         <button type="submit" class="button primary">ذخیره فاکتور</button>
       </div>
     </form>
   </div>
 </div>
+
 
 <!-- Modal پرداخت -->
 <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center hidden z-50">
@@ -84,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
       paymentMethods = data.payment_methods;
       banks = data.banks;
     });
-
+  
   const totalAmountField = document.getElementById("id_price");
   if (totalAmountField) {
     invoiceTotalAmount = parseFloat(totalAmountField.value.replace(/,/g, '')) || 0;
@@ -229,6 +263,81 @@ function formatNumber(input) {
   if (!isNaN(value) && value.length > 0) {
     input.value = parseInt(value).toLocaleString('en-US');
   }
+
+const container = document.getElementById("imageContainer");
+  const addBtn = document.getElementById("addCardBtn");
+  const imageModal = document.getElementById("imageModal");
+  const modalImage = document.getElementById("modalImage");
+
+  function handleCardClick(card) {
+    const input = card.querySelector("input");
+    input.click();
+    input.onchange = () => {
+      if (input.files.length > 0) {
+        const file = input.files[0];
+        const img = card.querySelector("img");
+        const reader = new FileReader();
+        reader.onload = e => {
+          img.src = e.target.result;
+          img.classList.remove("hidden");
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+  }
+
+  function setupCard(card) {
+    card.addEventListener("click", e => {
+      if (e.target.tagName !== "IMG") {
+        handleCardClick(card);
+      }
+    });
+
+    const img = card.querySelector("img");
+    img.addEventListener("click", e => {
+      e.stopPropagation();
+      modalImage.src = img.src;
+      imageModal.classList.remove("hidden");
+    });
+  }
+
+  function updateAddButton() {
+    const currentCards = container.querySelectorAll(".relative").length;
+    if (currentCards >= 4) {
+      addBtn.classList.add("hidden");
+    } else {
+      addBtn.classList.remove("hidden");
+    }
+  }
+
+  // کارت‌های اولیه
+  const initialCards = container.querySelectorAll(".relative");
+  initialCards.forEach(card => setupCard(card));
+  updateAddButton();
+
+  // اضافه کردن کارت جدید با +
+  addBtn.addEventListener("click", () => {
+    const currentCards = container.querySelectorAll(".relative").length;
+    if (currentCards >= 4) return;
+
+    const newCard = document.createElement("div");
+    newCard.className =
+      "relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer";
+    newCard.innerHTML = `<span class="text-gray-400 mb-1">اضافه</span>
+                         <img class="w-full h-full object-cover rounded hidden"/>
+                         <input type="file" accept="image/*" class="hidden imageInput" name="images_after">`;
+    container.insertBefore(newCard, addBtn);
+    setupCard(newCard);
+    updateAddButton();
+  });
+  input.addEventListener("change", function() {
+    console.log(this.files);
+});
+  // بستن مودال با کلیک روی زمینه
+  imageModal.addEventListener("click", () => {
+    imageModal.classList.add("hidden");
+  });
+
 }
 </script>
 

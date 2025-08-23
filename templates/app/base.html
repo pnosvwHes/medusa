@@ -1,162 +1,179 @@
-    {% load static %}
-    {% load jalali_tags %}
-    {% load humanize %}
-    {% load form_tags %}
+{% load static %}
+{% load jalali_tags %}
+{% load humanize %}
+{% load form_tags %}
 
-    <!DOCTYPE html>
-    <html lang="fa">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Medusa</title>
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#0d6efd">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Medusa</title>
+    <link rel="icon" href="{% static 'images/favicon.png' %}" type="image/png">
+    <link rel="apple-touch-icon" href="{% static 'icons/icon-192x192.png' %}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- CSS ها -->
+    <link rel="stylesheet" href="{% static 'output.css' %}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body class="bg-formreport">
 
-        <!-- CSS ها -->
-        <link rel="stylesheet" href="{% static 'output.css' %}" />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css" />
-        <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css" />
-        <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    </head>
-    <body class="bg-gray-50">
+<!-- هدر -->
+<nav class="bg-white border-b border-gray-200 shadow-sm ">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ">
+        <div class="flex h-16 items-start gap-20 justify-between ">
+            <div class="flex-shrink-0 flex justify-start items-center text-xl font-bold text-blue-600">
+                Medusa
+            </div>
 
-    <!-- هدر -->
-    <nav class="bg-white border-b border-gray-200 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- دکمه موبایل و منوی کاربر -->
+            <div class="flex items-center gap-4">
 
-            <div class="flex h-16 items-start gap-20 justify-between">
-
-                <div class="flex-shrink-0 flex justify-start items-center text-xl font-bold text-blue-600">
-                    Medusa
+                <!-- دکمه موبایل -->
+                <div class="flex lg:hidden">
+                    <button id="mobile-menu-button" class="text-gray-600 hover:text-gray-900 focus:outline-none">
+                        <i data-feather="menu"></i>
+                    </button>
                 </div>
 
-                <!-- دکمه موبایل و منوی کاربر (سمت راست) -->
-                <div class="flex items-center gap-4">
+                <!-- منوی دسکتاپ -->
+                <div class="hidden lg:flex gap-4 items-center">
+                    <a href="{% url 'home' %}" class="nav-link">صفحه اصلی</a>
 
-                    <!-- دکمه موبایل -->
-                    <div class="flex lg:hidden">
-                        <button id="mobile-menu-button" class="text-gray-600 hover:text-gray-900 focus:outline-none">
-                            <i data-feather="menu"></i>
-                        </button>
+                    <!-- مشتری -->
+                    <div class="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">مشتری</a>
+                        <ul class="dropdown-menu text-end">
+                            <li><a class="dropdown-item" href="{% url 'new_customer' %}">ثبت مشتری جدید</a></li>
+                            <li><a class="dropdown-item" href="{% url 'customers' %}">لیست مشتریان</a></li>
+                        </ul>
                     </div>
 
-                    <!-- منوی دسکتاپ -->
-                    <div class="hidden lg:flex gap-4 items-center">
-                        <a href="{% url 'home' %}" class="nav-link">صفحه اصلی</a>
-
-                        <!-- مشتری -->
-                        <div class="dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">مشتری</a>
-                            <ul class="dropdown-menu text-end">
-                                <li><a class="dropdown-item" href="{% url 'new_customer' %}">ثبت مشتری جدید</a></li>
-                                <li><a class="dropdown-item" href="{% url 'customers' %}">لیست مشتریان</a></li>
-                            </ul>
-                        </div>
-
-                        <!-- مالی -->
-                        <div class="dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">مالی</a>
-                            <ul class="dropdown-menu text-end">
-                                <li><a class="dropdown-item" href="{% url 'create_pay' %}">ثبت پرداخت</a></li>
-                                <li><a class="dropdown-item" href="{% url 'create_receipt' %}">ثبت دریافت</a></li>
-                                <li><a class="dropdown-item" href="{% url 'ledger_report' %}">گزارش مالی</a></li>
-                            </ul>
-                        </div>
-
-                        <!-- کاربر -->
-                        {% if request.user.is_authenticated %}
-                        <div class="dropdown">
-                            <a class="nav-link dropdown-toggle flex items-center gap-1" href="#" role="button" data-bs-toggle="dropdown">
-                                <i data-feather="user"></i> {{ request.user.get_full_name|default:request.user.username }}
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end text-end">
-                                <li><a class="dropdown-item" href="{% url 'password_change' %}">تغییر رمز عبور</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <form method="post" action="{% url 'logout' %}" class="m-0">
-                                        {% csrf_token %}
-                                        <button type="submit" class="dropdown-item">خروج</button>
-                                    </form>
-                                </li>
-                            </ul>
-                        </div>
-                        {% endif %}
+                    <!-- مالی -->
+                    <div class="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">مالی</a>
+                        <ul class="dropdown-menu text-end">
+                            <li><a class="dropdown-item" href="{% url 'create_pay' %}">ثبت پرداخت</a></li>
+                            <li><a class="dropdown-item" href="{% url 'create_receipt' %}">ثبت دریافت</a></li>
+                            <li><a class="dropdown-item" href="{% url 'pay_list' %}">لیست پرداخت‌ها</a></li>
+                            <li><a class="dropdown-item" href="{% url 'receipt_list' %}">لیست دریافت‌ها</a></li>
+                            <li><a class="dropdown-item" href="{% url 'ledger_report' %}">گزارش مالی</a></li>
+                        </ul>
                     </div>
 
-                    <div class="flex gap-3 items-center ml-auto">
-                        <a href="{% url 'create_sale' %}" class="text-blue-600 hover:text-blue-800" title="ثبت فاکتور">
-                            <i data-feather="file-text"></i>
+                    <!-- کاربر -->
+                    {% if request.user.is_authenticated %}
+                    <div class="dropdown">
+                        <a class="nav-link dropdown-toggle flex items-center gap-1" href="#" role="button" data-bs-toggle="dropdown">
+                            <i data-feather="user"></i> {{ request.user.get_full_name|default:request.user.username }}
                         </a>
-                        <a href="{% url 'booking_calendar' %}" class="text-green-600 hover:text-green-800" title="تقویم">
-                            <i data-feather="calendar"></i>
-                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end text-end">
+                            <li><a class="dropdown-item" href="{% url 'password_change' %}">تغییر رمز عبور</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form method="post" action="{% url 'logout' %}" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item">خروج</button>
+                                </form>
+                            </li>
+                        </ul>
                     </div>
+                    {% endif %}
+                </div>
+
+                <!-- آیکون‌ها سمت راست -->
+                <div class="flex gap-3 items-center ml-auto">
+                    <a href="{% url 'create_sale' %}" class="text-blue-600 hover:text-blue-800" title="ثبت فاکتور">
+                        <i data-feather="file-text"></i>
+                    </a>
+                    <a href="{% url 'booking_calendar' %}" class="text-green-600 hover:text-green-800" title="تقویم">
+                        <i data-feather="calendar"></i>
+                    </a>
+                    <a href="{% url 'gallery' %}" class="text-purple-600 hover:text-purple-800" title="گالری">
+                        <i data-feather="image"></i>
+                    </a>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- منوی موبایل -->
-        <div id="mobile-menu" class="hidden lg:hidden px-4 pb-4 space-y-2 bg-gray-50 border-t border-gray-200">
-            <a href="{% url 'home' %}" class="block py-2">صفحه اصلی</a>
-            <div>
-                <span class="block text-gray-600 mt-2">مشتری</span>
-                <a href="{% url 'new_customer' %}" class="block py-1 pr-4">ثبت مشتری جدید</a>
-                <a href="{% url 'customers' %}" class="block py-1 pr-4">لیست مشتریان</a>
-            </div>
-            <div>
-                <span class="block text-gray-600 mt-2">مالی</span>
-                <a href="{% url 'create_pay' %}" class="block py-1 pr-4">ثبت پرداخت</a>
-                <a href="{% url 'create_receipt' %}" class="block py-1 pr-4">ثبت دریافت</a>
-                <a href="{% url 'ledger_report' %}" class="block py-1 pr-4">گزارش مالی</a>
-            </div>
-            {% if request.user.is_authenticated %}
-            <div class="mt-3">
-                <span class="block text-gray-600">{{ request.user.get_full_name|default:request.user.username }}</span>
-                <a href="{% url 'password_change' %}" class="block py-1 pr-4">تغییر رمز عبور</a>
-                <form method="post" action="{% url 'logout' %}">
-                    {% csrf_token %}
-                    <button type="submit" class="block py-1 pr-4 text-red-600">خروج</button>
-                </form>
-            </div>
-            {% endif %}
+    <!-- منوی موبایل -->
+    <div id="mobile-menu" class="hidden lg:hidden px-4 pb-4 space-y-2 bg-gray-50 border-t border-gray-200">
+        <a href="{% url 'home' %}" class="block py-2">صفحه اصلی</a>
+        <div>
+            <span class="block text-gray-600 mt-2">مشتری</span>
+            <a href="{% url 'new_customer' %}" class="block py-1 pr-4">ثبت مشتری جدید</a>
+            <a href="{% url 'customers' %}" class="block py-1 pr-4">لیست مشتریان</a>
         </div>
-    </nav>
+        <div>
+            <span class="block text-gray-600 mt-2">مالی</span>
+            <a href="{% url 'create_pay' %}" class="block py-1 pr-4">ثبت پرداخت</a>
+            <a href="{% url 'create_receipt' %}" class="block py-1 pr-4">ثبت دریافت</a>
+            <a href="{% url 'pay_list' %}" class="block py-1 pr-4">لیست پرداخت‌ها</a>
+            <a href="{% url 'receipt_list' %}" class="block py-1 pr-4">لیست دریافت‌ها</a>
+            <a href="{% url 'ledger_report' %}" class="block py-1 pr-4">گزارش مالی</a>
+        </div>
+        {% if request.user.is_authenticated %}
+        <div class="mt-3">
+            <span class="block text-gray-600">{{ request.user.get_full_name|default:request.user.username }}</span>
+            <a href="{% url 'password_change' %}" class="block py-1 pr-4">تغییر رمز عبور</a>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="block py-1 pr-4 text-red-600">خروج</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</nav>
 
-    {% block content %}{% endblock %}
+{% block content %}{% endblock %}
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/persian-date/dist/persian-date.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
-    <script src="https://unpkg.com/feather-icons"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fa.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-date/dist/persian-date.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+<script src="https://unpkg.com/feather-icons"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fa.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
-    <script>
-    $(document).ready(function() {
-        $('.select2').select2({
-            width: '100%',
-            placeholder: 'انتخاب کنید',
-            allowClear: true
-        });
+<script>
+$(document).ready(function() {
+    $('.select2').select2({
+        width: '100%',
+        placeholder: 'انتخاب کنید',
+        allowClear: true
+    });
 
-        $("#jalali-datepicker").persianDatepicker({
-            format: 'YYYY-MM-DD',
-            initialValue: false,
-            autoClose: true
-        });
+    $("#jalali-datepicker").persianDatepicker({
+        format: 'YYYY-MM-DD',
+        initialValue: false,
+        autoClose: true,
+    });
 
-        feather.replace();
+    feather.replace();
 
-        document.getElementById("mobile-menu-button").addEventListener("click", function(){
-            document.getElementById("mobile-menu").classList.toggle("hidden");
-        });
-    }); 
-    </script>
+    document.getElementById("mobile-menu-button").addEventListener("click", function(){
+        document.getElementById("mobile-menu").classList.toggle("hidden");
+    });
+}); 
 
-    {% block extra_scripts %}{% endblock %}
-    </body>
-    </html>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register("{% static 'service-worker.js' %}")
+  .then(reg => console.log("Service Worker registered:", reg))
+  .catch(err => console.log("Service Worker registration failed:", err));
+}
+</script>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

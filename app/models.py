@@ -2,12 +2,33 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 from django.utils import timezone
 from django.contrib.auth.models import User
-# Create your models here.
+from django.contrib.auth.models import User
+
+class BaseModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    created_by = models.ForeignKey(
+        User,
+        related_name="%(class)s_created",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    updated_by = models.ForeignKey(
+        User,
+        related_name="%(class)s_updated",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        abstract = True
 
 class UserProfile(AbstractBaseUser):
     pass
 
-class Personnel(models.Model):
+class Personnel(BaseModel):
 
     ON_SITE_CHOICES =[
         ('بله', 'yes'),
@@ -22,24 +43,40 @@ class Personnel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
+    
+    def name(self):
+        return self.fname+'-'+self.lname
+
 
     def __str__(self):
         return self.fname+'-'+self.lname
 
-class Customer(models.Model):
-    name = models.CharField(max_length=200)
+class Customer(BaseModel):
+    fname = models.CharField(max_length=200)
+    lname = models.CharField(max_length=200, default="")
     mobile = models.CharField(max_length=11)
+    birth_day = models.DateField(blank=True, null=True)
+    region = models.CharField(max_length=200, blank=True)
+    referrer = models.ForeignKey(
+        "self",                  
+        null=True, blank=True,   
+        on_delete=models.SET_NULL,
+        related_name="referrals", 
+        verbose_name="معرف"
+    )
     black_list = models.BooleanField(default=False)
     black_list_reason = models.CharField(max_length=2000, blank=True)
-
+    @property
+    def name(self):
+        return f"{self.fname}-{self.lname}"
     def __str__(self):
-        return self.name
+        return f"{self.fname}-{self.lname}"
     
     @property
     def sale_count(self):
         return self.sale_set.count()
 
-class Sale(models.Model):
+class Sale(BaseModel):
     customer = models.ForeignKey("Customer", on_delete=models.PROTECT)
     personnel = models.ForeignKey("Personnel", on_delete=models.PROTECT)
     price = models.IntegerField(default=0)
@@ -68,16 +105,31 @@ class Sale(models.Model):
 
         super().save(*args, **kwargs)
 
+class SaleImage(models.Model):
+    BEFORE = "before"
+    AFTER = "after"
+    IMAGE_TYPES = [
+        (BEFORE, "قبل"),
+        (AFTER, "بعد"),
+    ]
+
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to="sale_images/")
+    image_type = models.CharField(max_length=10, choices=IMAGE_TYPES)  # 👈 اضافه شد
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.sale} - {self.get_image_type_display()}"
 
 
 
-class Work(models.Model):
+class Work(BaseModel):
     work_name = models.CharField(max_length=1000)
 
     def __str__(self):
         return self.work_name
     
-class PaymentMethod(models.Model):
+class PaymentMethod(BaseModel):
     name = models.CharField(max_length=100)
     requires_bank = models.BooleanField(default=False)
 
@@ -85,7 +137,7 @@ class PaymentMethod(models.Model):
         return self.name
 
 
-class Bank(models.Model):
+class Bank(BaseModel):
     name = models.CharField(max_length=100)
 
     def __str__(self):
@@ -93,7 +145,7 @@ class Bank(models.Model):
 
 
 
-class Payment(models.Model):
+class Payment(BaseModel):
     sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name="payments")
     method = models.ForeignKey(PaymentMethod, on_delete=models.PROTECT)
     bank = models.ForeignKey(Bank, null=True, blank=True, on_delete=models.SET_NULL)
@@ -101,7 +153,7 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
-class TransactionType(models.Model):
+class TransactionType(BaseModel):
     name = models.CharField(max_length=50)  # مثل دریافت یا پرداخت
     effect = models.SmallIntegerField(
         choices=[
@@ -114,7 +166,7 @@ class TransactionType(models.Model):
     def __str__(self):
         return self.name
 
-class Transaction(models.Model):
+class Transaction(BaseModel):
     transaction_type = models.ForeignKey(TransactionType, on_delete=models.PROTECT)  # دریافت یا پرداخت
     source_type = models.ForeignKey(PaymentMethod, on_delete=models.PROTECT)  # نقدی یا بانکی
     bank = models.ForeignKey(Bank, null=True, blank=True, on_delete=models.SET_NULL)
@@ -129,7 +181,7 @@ class Transaction(models.Model):
         return f"{self.transaction_type} - {self.source_type} - {self.amount} -{self.date}-{self.description}"
     
 
-class PersonnelCommission(models.Model):
+class PersonnelCommission(BaseModel):
     personnel = models.ForeignKey("Personnel", on_delete=models.PROTECT)
     work = models.ForeignKey("Work" , on_delete=  models.PROTECT)
     percentage = models.IntegerField(default=60)
@@ -137,7 +189,7 @@ class PersonnelCommission(models.Model):
     end_date = models.DateField()
 
 
-class PersonnelUser(models.Model):
+class PersonnelUser(BaseModel):
     personnel = models.OneToOneField(Personnel, on_delete=models.PROTECT, related_name='user_profile')
     user = models.OneToOneField(User, on_delete=models.PROTECT, related_name='personnel_profile')
     is_admin = models.BooleanField(default=False)
@@ -148,7 +200,7 @@ class PersonnelUser(models.Model):
     def get_personnel(self):
         return self.personnel
     
-class Appointment(models.Model):
+class Appointment(BaseModel):
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='appointments')
     work = models.ForeignKey(Work, on_delete=models.PROTECT)
     personnel = models.ForeignKey(Personnel, on_delete=models.PROTECT)
@@ -169,7 +221,7 @@ class Appointment(models.Model):
 from django.db import models
 
 # نوع پرداخت
-class PayType(models.Model):
+class PayType(BaseModel):
     name = models.CharField(max_length=50)  # پرسنل، هزینه سالن، هزینه منزل، سایر
     is_personnel = models.BooleanField(default=False)  # اگر انتخاب پرسنل باشد
 
@@ -178,7 +230,7 @@ class PayType(models.Model):
 
 
 # مدل پرداخت
-class Pay(models.Model):
+class Pay(BaseModel):
     source_type = models.ForeignKey("PaymentMethod", on_delete=models.PROTECT)
     bank = models.ForeignKey("Bank", null=True, blank=True, on_delete=models.SET_NULL)
     amount = models.DecimalField(max_digits=12, decimal_places=0)
@@ -199,7 +251,7 @@ class Pay(models.Model):
 
 
 # نوع دریافت
-class ReceiptType(models.Model):
+class ReceiptType(BaseModel):
     name = models.CharField(max_length=50)  # مشتری، سایر
     is_customer = models.BooleanField(default=False)
 
@@ -208,7 +260,7 @@ class ReceiptType(models.Model):
 
 
 # مدل دریافت
-class Receipt(models.Model):
+class Receipt(BaseModel):
     source_type = models.ForeignKey("PaymentMethod", on_delete=models.PROTECT)
     bank = models.ForeignKey("Bank", null=True, blank=True, on_delete=models.SET_NULL)
     amount = models.DecimalField(max_digits=12, decimal_places=0)

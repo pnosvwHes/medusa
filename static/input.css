@@ -2,27 +2,55 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-.button{
-    @apply font-medium px-4 py-2 rounded-md ;
+ 
+/* دکمه‌ها */
+.button {
+  @apply font-medium px-4 py-2 rounded-md;
 }
-
+ 
 .primary {
-  @apply  shadow-sm border border-emerald-700 text-black bg-emerald-600 hover:bg-emerald-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500;
+  @apply shadow-sm border border-emerald-700 text-black bg-emerald-600 hover:bg-emerald-700
+         focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500;
 }
  
 .secondary {
-  @apply border border-gray-300 text-gray-700 bg-gray-100 hover:bg-gray-200 hover:underline focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
+  @apply border border-gray-300 text-gray-700 bg-gray-100 hover:bg-gray-200 hover:underline
+         focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
 }
  
 .danger {
-  @apply shadow-sm border border-red-400 text-red-800 bg-red-200 hover:bg-red-300 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-200;
+  @apply shadow-sm border border-red-400 text-red-800 bg-red-200 hover:bg-red-300
+         focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-200;
 }
-
+ 
 .input {
-  @apply text-center border py-2 rounded-md
+  @apply text-center border py-2 rounded-md;
 }
-
+ 
 .select-field {
-  @apply  select2 border p-2 rounded w-full
+  @apply  border p-2 rounded w-full;
+}
+ 
+.form-data {
+  @apply p-6 rounded-lg ; /* پس‌زمینه ملایم و فاصله داخلی */
+}
+ 
+.form-data input,
+.form-data select,
+.form-data textarea {
+  @apply bg-white border rounded-md w-full min-h-[42px] px-2 py-1; /* فیلد سفید با ارتفاع مناسب */
+}
+ 
+.form-data textarea {
+  @apply min-h-[120px];
+}
+ 
+/* فرم گزارش / لیست (فیلتر، سرچ و ...) */
+.form-report {
+  @apply p-4 rounded-md border border-gray-200; /* ساده‌تر و سبک‌تر */
+}
+ 
+.form-report input,
+.form-report select {
+  @apply bg-white border rounded-md min-h-[36px] px-2 py-1 text-sm; /* فشرده‌تر */
 }

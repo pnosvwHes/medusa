@@ -1,0 +1,83 @@
+{% extends "app/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+  <!-- کارت مانده پرداخت‌ها -->
+  <div class="p-4 bg-white rounded-2xl shadow">
+    <h2 class="font-bold mb-2">مانده پرداخت‌ها</h2>
+    <canvas id="balanceChart"></canvas>
+  </div>
+
+  <!-- کارت فروش روزانه -->
+  <div class="p-4 bg-white rounded-2xl shadow">
+    <h2 class="font-bold mb-2">فروش روزانه</h2>
+    <canvas id="salesChart"></canvas>
+  </div>
+
+  <!-- کارت رزروها -->
+  <div class="p-4 bg-white rounded-2xl shadow">
+    <h2 class="font-bold mb-2">رزروها</h2>
+    <canvas id="apptChart"></canvas>
+  </div>
+
+  <!-- کارت تعداد فاکتورها -->
+  <div class="p-4 bg-white rounded-2xl shadow">
+    <h2 class="font-bold mb-2">تعداد فاکتورها</h2>
+    <canvas id="salesCountChart"></canvas>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // ===== کارت مانده پرداخت‌ها =====
+  const balancesData = {{ balances_chart|safe }};
+  const labels = balancesData[0].data.map(d => d.date);
+  const datasets = balancesData.map(item => ({
+    label: item.name,
+    data: item.data.map(d => d.balance),
+    borderColor: '#' + Math.floor(Math.random()*16777215).toString(16),
+    fill: false
+  }));
+
+  new Chart(document.getElementById("balanceChart"), {
+    type: "line",
+    data: { labels: labels, datasets: datasets },
+    options: { responsive: true }
+  });
+
+  // ===== کارت فروش روزانه =====
+  const salesData = {{ sales_chart|safe }};
+  const salesDatasets = [{ label: "کمیسیون", data: salesData.map(s => s.commission), backgroundColor: "green" }];
+  {% if is_super %}
+  salesDatasets.push({ label: "مابقی مبلغ", data: salesData.map(s => s.remainder), backgroundColor: "orange" });
+  {% endif %}
+
+  new Chart(document.getElementById("salesChart"), {
+    type: "bar",
+    data: {
+      labels: salesData.map(s => s.date),
+      datasets: salesDatasets
+    },
+    options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }
+  });
+
+  // ===== کارت رزروها =====
+  const apptData = {{ appt_chart|safe }};
+  new Chart(document.getElementById("apptChart"), {
+    type: "line",
+    data: { labels: apptData.map(a => a.date), datasets: [{ label: "تعداد رزروها", data: apptData.map(a => a.count), borderColor: "purple", fill: false }] },
+    options: { responsive: true }
+  });
+
+  // ===== کارت تعداد فاکتورها =====
+  const salesCountData = {{ sales_count_chart|safe }};
+  new Chart(document.getElementById("salesCountChart"), {
+    type: "line",
+    data: { labels: salesCountData.map(a => a.date), datasets: [{ label: "تعداد فاکتورها", data: salesCountData.map(a => a.count), borderColor: "red", fill: false }] },
+    options: { responsive: true }
+  });
+</script>
+{% endblock %}

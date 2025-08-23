@@ -1,0 +1,34 @@
+{% extends 'app/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<h2>لیست پرداخت‌ها</h2>
+<table class="table-auto w-full border">
+    <thead>
+        <tr>
+            <th>تاریخ</th>
+            <th>نوع پرداخت</th>
+            <th>پرسنل</th>
+            <th>مبلغ</th>
+            <th>حساب بانکی</th>
+            <th>توضیحات</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pay in pays %}
+        <tr>
+            <td>{{ pay.date|date:"Y-m-d" }}</td>
+            <td>{{ pay.pay_type }}</td>
+            <td>{{ pay.personnel }}</td>
+            <td>{{ pay.amount|intcomma }}</td>
+            <td>{{ pay.bank }}</td>
+            <td>{{ pay.description }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6">هیچ رکوردی یافت نشد</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

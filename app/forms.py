@@ -28,7 +28,6 @@ class SaleForm(forms.ModelForm):
         ),
         initial=timezone.now().time().strftime('%H:%M'),
     )
-
     class Meta:
         model = Sale
         fields = ['customer', 'personnel', 'work', 'price']  # حذف date از اینجا
@@ -37,6 +36,7 @@ class SaleForm(forms.ModelForm):
             'personnel': 'پرسنل',
             'work': 'خدمت',
             'price': 'مبلغ',
+            
         }
         widgets = {
             'customer': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
@@ -217,4 +217,26 @@ class ReceiptForm(forms.ModelForm):
         return instance
     
 
+
+class CustomerForm(forms.ModelForm):
+    class Meta:
+        model = Customer
+        fields = ['fname', 'lname', 'mobile', 'birth_day', 'region', 'referrer']
+        labels = {
+            'fname': 'نام ',
+            'lname': 'نام خانوادگی',
+            'mobile': 'موبایل',
+            'birth_day': 'تاریخ تولد', 
+            'region': 'محله', 
+            'referrer': 'معرف',
+        }
+        widgets = {
+            'lname': forms.TextInput(attrs={'class': 'input'}),
+            'fname': forms.TextInput(attrs={'class': 'input'}),
+            'mobile': forms.TextInput(attrs={'class': 'input'}),
+            'birth_day': AdminJalaliDateWidget(attrs={'class': 'border p-2 rounded w-full'}),
+            'region': forms.TextInput(attrs={'class': 'input'}),
+            'referrer': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
+        }
+        referrer = forms.ModelChoiceField(queryset=Customer.objects.all(), required=False)
 
