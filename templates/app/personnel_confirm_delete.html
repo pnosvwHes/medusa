@@ -1,0 +1,12 @@
+{% extends "app/base.html" %}
+{% block content %}
+<div class="max-w-md mx-auto p-6 bg-white rounded shadow">
+    <h1 class="text-lg font-bold mb-4">حذف پرسنل</h1>
+    <p>آیا مطمئن هستید که می‌خواهید <strong>{{ object }}</strong> را حذف کنید؟</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">بله، حذف شود</button>
+        <a href="{% url 'personnel_list' %}" class="btn btn-secondary">انصراف</a>
+    </form>
+</div>
+{% endblock %}

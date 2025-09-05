@@ -1,19 +1,19 @@
 import json
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render,redirect
-from django.urls import reverse_lazy
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, render, redirect
+from django.urls import reverse_lazy, NoReverseMatch, reverse
 from app.models import *
 from django.views.generic import CreateView, ListView, UpdateView, DeleteView, TemplateView
 from django.contrib import messages
 from django.utils import timezone
-from jalali_date import datetime2jalali
-from django.db.models import Sum, F, Q, Count
+from jalali_date import datetime2jalali, date2jalali
+from django.db.models import Sum, F, Q, Count, Max
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime as gdatetime, timedelta
 from app.forms import *
 from django.contrib.auth.decorators import login_required,user_passes_test
 from django.utils.decorators import method_decorator
-from .utils import is_admin,compress_image
+from .utils import is_admin,compress_image, persian_to_english, english_to_persian, jalali_to_gregorian
 import jdatetime
 import pandas as pd
 from app.mixins import UserTrackMixin
@@ -40,25 +40,51 @@ def home (request):
 class SaleCreateView(CreateView, UserTrackMixin):
     template_name = "app/new_sale.html"
     form_class = SaleForm
-    success_url = reverse_lazy("home")
+    success_url = reverse_lazy("sales")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        current_time = timezone.now().astimezone(timezone.get_current_timezone())
+        context['current_time'] = current_time.strftime('%H:%M')
+        return context
+    
+class SaleUpdateView(UserTrackMixin, UpdateView):
+    template_name = "app/edit_sale.html" 
+    model = Sale
+    fields = ["customer", "personnel", "work", "price", "date"]
+    success_url = reverse_lazy("sales")
+    context_object_name = "sale"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        images = self.object.images.all()
+        context['before_images'] = images.filter(image_type=SaleImage.BEFORE)
+        context['after_images'] = images.filter(image_type=SaleImage.AFTER)
+        context['empty_before'] = 1 - context['before_images'].count()  # فقط یک عکس قبل
+        context['empty_after'] = 3 - context['after_images'].count()   # حداکثر ۳ عکس بعد
+        return context
 
     def form_valid(self, form):
         self.object = form.save()
+
+        # قبل
         before_images = self.request.FILES.getlist("images_before")
         for img in before_images[:1]:
             compressed = compress_image(img)
             SaleImage.objects.create(sale=self.object, image=compressed, image_type=SaleImage.BEFORE)
-        
-        after_images  = self.request.FILES.getlist("images_after")
-        for img in after_images [:3]:
+
+
+        # بعد
+        after_images = self.request.FILES.getlist("images_after")
+        for img in after_images[:3]:
             compressed = compress_image(img)
             SaleImage.objects.create(sale=self.object, image=compressed, image_type=SaleImage.AFTER)
-        
 
-        response = super().form_valid(form)
         if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'sale_id': self.object.id})
-        return response
+
+        return super().form_valid(form)
+
 
 
 
@@ -101,10 +127,10 @@ class SaleListView(ListView):
             print(f"Error in date processing: {e}")
             return Sale.objects.none()
 
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.now()
-
 
         selected_date = self.request.GET.get('date')
         if selected_date:
@@ -115,36 +141,39 @@ class SaleListView(ListView):
             context['selected_jalali_date'] = to_persian_numbers(jalali_today_str)
             context['date_formatted'] = jalali_today_str
 
-        context['today_jalali'] = datetime2jalali(today).strftime('%Y-%m-%d')
-
         sales_today = self.get_queryset()
+        context['sales_today'] = sales_today  # اضافه می‌کنیم برای کارت‌ها
+
         total_price = sales_today.aggregate(total=Sum('price'))['total'] or 0
+        total_commission = sales_today.aggregate(total=Sum('commission_amount'))['total'] or 0
         context['total_price'] = total_price
+        context['total_commission'] = total_commission
 
         return context
-class SaleUpdateView(UserTrackMixin, UpdateView):
-    template_name = "app/edit_sale.html" 
-    model = Sale
-    fields=["customer", "personnel", "work", "price", "date"]
-    success_url = reverse_lazy("home")
-    context_object_name="sale"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        images = self.object.images.all()
-        context['images'] = images
-        context['empty_slots'] = MAX_IMAGES - images.count()
-        return context
+# class SaleUpdateView(UserTrackMixin, UpdateView):
+#     template_name = "app/edit_sale.html" 
+#     model = Sale
+#     fields=["customer", "personnel", "work", "price", "date"]
+#     success_url = reverse_lazy("home")
+#     context_object_name="sale"
 
-    def form_valid(self, form):
-        self.object = form.save()
-        existing_count = self.object.images.count()
-        remaining_slots = MAX_IMAGES - existing_count
-        images = self.request.FILES.getlist("images")
-        for img in images[:remaining_slots]:
-            compressed = compress_image(img)
-            SaleImage.objects.create(sale=self.object, image=compressed)
-        return super().form_valid(form)
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         images = self.object.images.all()
+#         context['images'] = images
+#         context['empty_slots'] = MAX_IMAGES - images.count()
+#         return context
+
+#     def form_valid(self, form):
+#         self.object = form.save()
+#         existing_count = self.object.images.count()
+#         remaining_slots = MAX_IMAGES - existing_count
+#         images = self.request.FILES.getlist("images")
+#         for img in images[:remaining_slots]:
+#             compressed = compress_image(img)
+#             SaleImage.objects.create(sale=self.object, image=compressed)
+#         return super().form_valid(form)
 
 @csrf_exempt
 def delete_sale_image(request):
@@ -275,15 +304,12 @@ class TransactionCreateView(CreateView):
         return response
     
 class PayCreateView(CreateView):
-    template_name = "app/new_pay.html"  # می‌توانی قالب جدا هم بسازی
+    template_name = "app/new_pay.html"  
     form_class = PayForm
     success_url = reverse_lazy("pay_list")
     source_types = PaymentMethod.objects.all()
     pay_type = PayType.objects.all()
-    def persian_to_english(self, s):
-        persian_digits = '۰۱۲۳۴۵۶۷۸۹'
-        english_digits = '0123456789'
-        return str(s).translate(str.maketrans(persian_digits, english_digits))
+   
     def form_valid(self, form):
         response = super().form_valid(form)
         # پشتیبانی از Ajax
@@ -296,7 +322,7 @@ class PayCreateView(CreateView):
         date_val = data.get('date')
         if date_val:
             try:
-                date_val = self.persian_to_english(date_val)
+                date_val = persian_to_english(date_val)
                 parts = list(map(int, date_val.split('/')))
                 import jdatetime
                 date_val = jdatetime.date(parts[0], parts[1], parts[2]).togregorian()
@@ -321,17 +347,14 @@ class ReceiptCreateView(CreateView):
             
             return JsonResponse({'receipt_id': self.object.id})
         return response    
-    def persian_to_english(self, s):
-        persian_digits = '۰۱۲۳۴۵۶۷۸۹'
-        english_digits = '0123456789'
-        return str(s).translate(str.maketrans(persian_digits, english_digits))
+   
     def post(self, request, *args, **kwargs):
         data = request.POST.copy()
         date_val = data.get('date')
         if date_val:
             try:
                 # تبدیل اعداد فارسی به انگلیسی
-                date_val = self.persian_to_english(date_val)
+                date_val = persian_to_english(date_val)
                 # تبدیل تاریخ شمسی به میلادی
                 parts = list(map(int, date_val.split('/')))
                 import jdatetime
@@ -343,17 +366,120 @@ class ReceiptCreateView(CreateView):
         return super().post(request, *args, **kwargs)
 
 
+
 class PayListView(ListView):
     model = Pay
-    template_name = 'app/pay_list.html'  # مسیر قالب
+    template_name = 'app/pay_list.html'
     context_object_name = 'pays'
-    paginate_by = 50  # اگر خواستی صفحه‌بندی
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        today = timezone.localdate()
+        default_from = today - timedelta(days=7)
+        default_to = today
+
+        from_date_str = self.request.GET.get("from_date")
+        to_date_str = self.request.GET.get("to_date")
+
+        if from_date_str:
+            try:
+                j_from = jdatetime.datetime.strptime(from_date_str, "%Y/%m/%d").date()
+                from_date = j_from.togregorian()
+            except:
+                from_date = default_from
+        else:
+            from_date = default_from
+
+        if to_date_str:
+            try:
+                j_to = jdatetime.datetime.strptime(to_date_str, "%Y/%m/%d").date()
+                to_date = j_to.togregorian()
+            except:
+                to_date = default_to
+        else:
+            to_date = default_to
+
+        qs = qs.filter(date__range=[from_date, to_date])
+        self.from_date = from_date
+        self.to_date = to_date
+
+        return qs.order_by("-date")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+
+        context["from_date"] = english_to_persian(jdatetime.date.fromgregorian(date=self.from_date).strftime("%Y/%m/%d"))
+        context["to_date"] = english_to_persian(jdatetime.date.fromgregorian(date=self.to_date).strftime("%Y/%m/%d"))
+
+        # Select2 JSON data
+        context["pay_types_json"] = json.dumps(
+            [{"id": pt.id, "name": pt.name, "is_personnel": pt.is_personnel} for pt in PayType.objects.all()]
+        )
+        context["personnel_json"] = json.dumps(
+            [{"id": p.id, "name": f"{p.fname}-{p.lname}"} for p in Personnel.objects.all()]
+        )
+        context["source_types_json"] = json.dumps(
+            [{"id": st.id, "name": st.name, "requires_bank": st.requires_bank} for st in PaymentMethod.objects.all()]
+        )
+        context["banks_json"] = json.dumps(
+            [{"id": b.id, "name": b.name} for b in Bank.objects.all()]
+        )
+
+        return context
+
 
 class ReceiptListView(ListView):
     model = Receipt
     template_name = 'app/receipt_list.html'
     context_object_name = 'receipts'
-    paginate_by = 50
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        today = timezone.localdate()
+        default_from = today - timedelta(days=7)
+        default_to = today
+
+        from_date_str = self.request.GET.get("from_date")
+        to_date_str = self.request.GET.get("to_date")
+
+        if from_date_str:
+            try:
+                # رشته شمسی → جلالی
+                j_from = jdatetime.datetime.strptime(from_date_str, "%Y/%m/%d").date()
+                # جلالی → میلادی
+                from_date = j_from.togregorian()
+            except:
+                from_date = default_from
+        else:
+            from_date = default_from
+
+        if to_date_str:
+            try:
+                j_to = jdatetime.datetime.strptime(to_date_str, "%Y/%m/%d").date()
+                to_date = j_to.togregorian()
+            except:
+                to_date = default_to
+        else:
+            to_date = default_to
+
+        qs = qs.filter(date__range=[from_date, to_date])
+
+        self.from_date = from_date
+        self.to_date = to_date
+
+        return qs.order_by("-date")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        def to_persian(num):
+            return str(num).translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
+
+        context["from_date"] = to_persian(jdatetime.date.fromgregorian(date=self.from_date).strftime("%Y/%m/%d"))
+        context["to_date"] = to_persian(jdatetime.date.fromgregorian(date=self.to_date).strftime("%Y/%m/%d"))
+        return context
 
 @method_decorator(login_required, name='dispatch')
 @method_decorator(user_passes_test(lambda u: u.is_superuser), name='dispatch')  # یا تابع is_admin خودت
@@ -385,7 +511,7 @@ class LedgerReportView(ListView):
         except (ValueError, TypeError):
             start_date = default_dates['default_start_date']
             end_date = default_dates['default_end_date']
-        print(start_date)
+        
         # همه پرداخت‌ها و دریافت‌ها
         pay_qs = Pay.objects.select_related('pay_type', 'source_type', 'bank').all()
         receipt_qs = Receipt.objects.select_related('receipt_type', 'source_type', 'bank').all()
@@ -419,7 +545,7 @@ class LedgerReportView(ListView):
         bank_id = self.request.GET.get("bank")
         start_date_str = self.request.GET.get("start_date", default_dates['default_start_date_str'])
         end_date_str = self.request.GET.get("end_date", default_dates['default_end_date_str'])
-        print(start_date_str)
+        
         try:
             start_date_str = start_date_str.replace('/','-')
             start_date_j = jdatetime.date.fromisoformat(start_date_str)
@@ -431,7 +557,7 @@ class LedgerReportView(ListView):
         except (ValueError, TypeError):
             start_date = default_dates['default_start_date']
             end_date = default_dates['default_end_date']
-        print (start_date)
+        
         # موجودی اولیه
         opening_balance = 0
         if bank_id:
@@ -608,7 +734,7 @@ def create_appointment(request):
                     'status': 'error',
                     'message': 'لطفاً تمام فیلدهای ضروری را پر کنید'
                 }, status=400)
-            print ("AAAAAAA")
+            
             # تبدیل رشته‌ها به datetime
             try:
                 
@@ -918,7 +1044,8 @@ class HomeDashboardView(TemplateView):
             line_data = []
             for d in last_30_days:
                 pays = Pay.objects.filter(date=d, personnel=personnel)
-                total = int(pays.aggregate(total=Sum("amount"))["total"]) or 0
+                total = pays.aggregate(total=Sum("amount"))["total"] or 0
+                total = int(total)
                 line_data.append({
                     "date": jdatetime.date.fromgregorian(date=d).strftime("%Y-%m-%d"),
                     "balance": total
@@ -983,3 +1110,191 @@ class HomeDashboardView(TemplateView):
 
         context["is_super"] = is_super
         return context
+class PayUpdateView(UpdateView):
+    template_name = "app/edit_pay.html"
+    form_class = PayForm
+    model = Pay
+    success_url = reverse_lazy("pay_list")
+
+    def form_valid(self, form):
+        pay = form.save()
+        # اگر درخواست Ajax بود، خروجی JSON بده
+        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+            import jdatetime
+            return JsonResponse({
+                            "success": True,
+                            "id": pay.id,
+                            "date": pay.date, 
+                            "pay_type": pay.pay_type.name if pay.pay_type else "",
+                            "personnel": pay.personnel.name if pay.personnel else "",
+                            "amount": f"{pay.amount:,}",
+                            "source_type": pay.source_type.name if pay.source_type else "",
+                            "bank": pay.bank.name if pay.bank else "",
+    })
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "errors": form.errors
+            }, status=400)
+        return super().form_invalid(form)
+
+    def post(self, request, *args, **kwargs):
+        """قبل از اعتبارسنجی فرم تاریخ فارسی/اعداد فارسی رو تبدیل می‌کنیم"""
+        data = request.POST.copy()
+        date_val = data.get("date")
+        if date_val:
+            try:
+                date_val = persian_to_english(date_val)  # تبدیل اعداد فارسی به انگلیسی
+                parts = list(map(int, date_val.split("/")))
+                date_val = jdatetime.date(parts[0], parts[1], parts[2]).togregorian()
+                data["date"] = date_val
+            except Exception as e:
+                print("❌ Error parsing date in UpdateView:", e)
+        request.POST = data
+        return super().post(request, *args, **kwargs)
+class ReceiptUpdateView(UpdateView):
+    template_name = "app/edit_Receipt.html"
+    form_class = ReceiptForm    
+    model = Receipt
+    success_url = reverse_lazy("Receipt_list")
+
+
+def sale_images_view(request, sale_id):
+    sale = get_object_or_404(Sale, id=sale_id)
+    images = sale.images.all()  # همه عکس‌ها
+    return render(request, 'app/sale_images.html', {'sale': sale, 'images': images})
+
+@login_required
+def finance_menu(request):
+    return render(request, "app/finance_menu.html")
+
+def settings_menu(request):
+    menu_items = []
+
+    def add_item(name, icon, url_name):
+        try:
+            url = reverse(url_name)
+            menu_items.append({"name": name, "icon": icon, "url": url})
+        except NoReverseMatch:
+            pass  # اگر url ثبت نشده باشه، آیتم ساخته نمیشه
+
+
+    # کاربران
+    # add_item("کاربر جدید", "fas fa-user-plus", "create_user")
+    add_item("کاربران", "fas fa-users", "users")
+
+    # پرسنل
+    # add_item("پرسنل جدید", "fas fa-user-tie", "new_personnel")
+    add_item("لیست پرسنل", "fas fa-id-card", "personnel_list")
+
+    # خدمات
+    # add_item("خدمت جدید", "fas fa-briefcase", "new_work")
+    add_item("خدمات", "fas fa-tasks", "works")
+
+    # مشتری
+    # add_item("مشتری جدید", "fas fa-user", "new_customer")
+    add_item("مشتریان", "fas fa-address-book", "customers")
+
+    # add_item("کمیسیون جدید", "fas fa-plus-circle", "new_commission")
+    add_item("کمیسیون پرسنل", "fas fa-percent", "commissions")
+
+    add_item("تغییر رمز عبور", "fas fa-key", "password_change")
+    add_item("خروج", "fas fa-sign-out-alt", "logout")
+
+    return render(request, "app/settings_menu.html", {"menu_items": menu_items})
+
+
+
+class PersonnelListView(ListView):
+    model = Personnel
+    template_name = "app/personnel_list.html"
+    context_object_name = "personnels"
+
+class PersonnelCreateView(CreateView):
+    model = Personnel
+    fields = ["fname", "lname", "mobile", "comment", "on_site", "is_active"]
+    template_name = "app/personnel_form.html"
+    success_url = reverse_lazy("personnel_list")
+
+class PersonnelUpdateView(UpdateView):
+    model = Personnel
+    fields = ["fname", "lname", "mobile", "comment", "on_site", "is_active"]
+    template_name = "app/personnel_form.html"
+    success_url = reverse_lazy("personnel_list")
+
+class PersonnelDeleteView(DeleteView):
+    model = Personnel
+    template_name = "app/personnel_confirm_delete.html"
+    success_url = reverse_lazy("personnel_list")
+
+
+class WorkListView(ListView):
+    model = Work
+    template_name = "settings/work_list.html"
+    context_object_name = "works"
+
+
+class WorkCreateView(CreateView):
+    model = Work
+    fields = ["work_name"]
+    template_name = "settings/work_form.html"
+    success_url = reverse_lazy("works")
+
+
+class WorkUpdateView(UpdateView):
+    model = Work
+    fields = ["work_name"]
+    template_name = "settings/work_form.html"
+    success_url = reverse_lazy("works")
+
+
+class WorkDeleteView(DeleteView):
+    model = Work
+    template_name = "settings/work_confirm_delete.html"
+    success_url = reverse_lazy("works")
+
+
+class PersonnelCommissionListView(ListView):
+    model = PersonnelCommission
+    template_name = "settings/commission_list.html"
+    context_object_name = "commissions"
+
+    def get_queryset(self):
+        show_history = self.request.GET.get("history") == "1"
+
+        if show_history:
+            return PersonnelCommission.objects.all().order_by("-start_date")
+
+        # فقط آخرین رکورد برای هر پرسنل و خدمت
+        latest_ids = (
+            PersonnelCommission.objects
+            .values("personnel_id", "work_id")
+            .annotate(max_id=Max("id"))
+            .values_list("max_id", flat=True)
+        )
+        return PersonnelCommission.objects.filter(id__in=latest_ids).order_by("personnel__lname", "work__work_name")
+
+
+
+class PersonnelCommissionCreateView(CreateView):
+    model = PersonnelCommission
+    fields = ["personnel", "work", "percentage", "start_date", "end_date"]
+    template_name = "settings/commission_form.html"
+    success_url = reverse_lazy("commissions")
+
+
+class PersonnelCommissionUpdateView(UpdateView):
+    model = PersonnelCommission
+    fields = ["personnel", "work", "percentage", "start_date", "end_date"]
+    template_name = "settings/commission_form.html"
+    success_url = reverse_lazy("commissions")
+
+
+
+class PersonnelCommissionDeleteView(DeleteView):
+    model = PersonnelCommission
+    template_name = "settings/commission_confirm_delete.html"
+    success_url = reverse_lazy("commissions")

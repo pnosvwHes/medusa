@@ -1,0 +1,17 @@
+{% extends "app/base.html" %}
+{% block content %}
+<div class="max-w-lg mx-auto p-6 bg-white shadow-md rounded-xl">
+    <h1 class="text-2xl font-bold mb-6 text-center">
+        {% if object %} ویرایش کمیسیون {% else %} کمیسیون جدید {% endif %}
+    </h1>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="mt-6 flex justify-between">
+            <a href="{% url 'commissions' %}" class="px-4 py-2 bg-gray-500 text-white rounded-lg">بازگشت</a>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg">ذخیره</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

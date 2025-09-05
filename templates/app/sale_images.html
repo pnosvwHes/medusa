@@ -1,0 +1,85 @@
+{% extends 'app/base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6">
+    <h2 class="text-xl font-bold mb-4 text-gray-800">
+        {{ sale.personnel }} - {{ sale.customer }} 
+    </h2>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {% for image in images %}
+        <div class="border rounded-lg overflow-hidden cursor-pointer" onclick="openImageModal('{{ image.image.url }}')">
+            <img src="{{ image.image.url }}" alt="{{ image.get_image_type_display }}" class="w-full h-32 object-cover">
+            <p class="text-center text-sm mt-1">{{ image.get_image_type_display }}</p>
+        </div>
+        {% empty %}
+        <p class="text-gray-500 col-span-4 text-center">هیچ عکسی موجود نیست.</p>
+        {% endfor %}
+    </div>
+
+    <!-- دکمه بازگشت دسکتاپ -->
+    <div class="mt-6 hidden md:block">
+        <button onclick="goBack()" 
+            class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded-xl shadow transition">
+            بازگشت
+        </button>
+    </div>
+</div>
+
+<!-- دکمه بازگشت موبایل (فیکس پایین صفحه) -->
+<div class="fixed bottom-0 left-0 right-0 md:hidden z-50">
+    <button onclick="goBack()" 
+        class="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-4 text-lg font-bold shadow-md rounded-none transition">
+         بازگشت
+    </button>
+</div>
+
+<!-- Modal نمایش عکس -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 hidden flex items-center justify-center z-50">
+    <div class="relative max-w-3xl w-full p-4">
+        <button onclick="closeImageModal()" 
+            class="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded-lg z-50">
+            ✕ بستن
+        </button>
+        <img id="modalImage" src="" class="max-h-[80vh] mx-auto object-contain cursor-zoom-in" 
+             onclick="toggleZoom(event)">
+    </div>
+</div>
+
+<script>
+    let isZoomed = false;
+
+    function openImageModal(src) {
+        const modal = document.getElementById("imageModal");
+        const modalImage = document.getElementById("modalImage");
+        modalImage.src = src;
+        modal.classList.remove("hidden");
+        isZoomed = false;
+        modalImage.style.transform = "scale(1)";
+    }
+
+    function closeImageModal() {
+        document.getElementById("imageModal").classList.add("hidden");
+    }
+
+    function toggleZoom(event) {
+        const img = event.target;
+        if (!isZoomed) {
+            img.style.transform = "scale(2)";
+            img.style.cursor = "zoom-out";
+        } else {
+            img.style.transform = "scale(1)";
+            img.style.cursor = "zoom-in";
+        }
+        isZoomed = !isZoomed;
+    }
+
+    function goBack() {
+        if (document.referrer) {
+            window.location.href = document.referrer;
+        } else {
+            window.history.back();
+        }
+    }
+</script>
+{% endblock %}

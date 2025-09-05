@@ -1,0 +1,13 @@
+{% extends "app/base.html" %}
+{% block content %}
+<div class="max-w-lg mx-auto p-6 bg-white rounded shadow">
+    <h1 class="text-xl font-bold mb-4">
+        {% if object %}ویرایش پرسنل{% else %}پرسنل جدید{% endif %}
+    </h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">ذخیره</button>
+    </form>
+</div>
+{% endblock %}

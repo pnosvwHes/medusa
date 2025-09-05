@@ -1,0 +1,38 @@
+    {% extends "app/base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-6 text-center">لیست خدمات</h1>
+
+    <div class="mb-4 text-right">
+        <a href="{% url 'new_work' %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg">خدمت جدید</a>
+    </div>
+
+    <div class="bg-white shadow-md rounded-xl overflow-hidden">
+        <table class="w-full text-center">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="p-3">شناسه</th>
+                    <th class="p-3">نام خدمت</th>
+                    <th class="p-3">عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for work in works %}
+                <tr class="border-t">
+                    <td class="p-3">{{ work.id }}</td>
+                    <td class="p-3">{{ work.work_name }}</td>
+                    <td class="p-3">
+                        <a href="{% url 'update_work' work.id %}" class="text-blue-600">ویرایش</a> |
+                        <a href="{% url 'delete_work' work.id %}" class="text-red-600">حذف</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="p-3">هیچ خدمتی ثبت نشده است.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

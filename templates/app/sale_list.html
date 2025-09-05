@@ -1,88 +1,189 @@
 {% extends "app/base.html" %}
 {% load humanize %}
-
-{% block extra_head %}
-
-{% endblock extra_head %}
+{% load jalali_tags %}
 
 {% block content %}
-<div>
-<form method="get" class="flex justify-center items-center gap-4">
-    <input type="text" 
-        id="jalali-datepicker" 
-        name="date" 
-        value="{{ selected_jalali_date }}"
-        class="border p-2 rounded text-center"
-        autocomplete="off"
-        placeholder="تاریخ را انتخاب کنید">
-    <button type="submit" 
-            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-        نمایش
-    </button>
-</form>
-</div>
+<div class="max-w-6xl mx-auto p-6">
 
-<div class="overflow-x-auto mt-4">
-    <table class="table-auto w-full border border-gray-300 text-center rounded-lg shadow">
-        <thead class="bg-gray-100">
-            <tr>
-                <th class="px-4 py-2">#</th>
-                <th class="px-4 py-2">مشتری</th>
-                <th class="px-4 py-2">پرسنل</th>
-                <th class="px-4 py-2">خدمت</th>
-                <th class="px-4 py-2">مبلغ</th>
-                <th class="px-4 py-2">ساعت</th>
-                {% if user.is_superuser %}
-                    <th class="px-4 py-2">عملیات</th>
-                {% endif %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for sale in sales %}
-            <tr class="border-t">
-                <td class="px-4 py-2">{{ forloop.counter }}</td>
-                <td class="px-4 py-2">{{ sale.customer }}</td>
-                <td class="px-4 py-2">{{ sale.personnel }}</td>
-                <td class="px-4 py-2">{{ sale.work }}</td>
-                <td class="px-4 py-2">{% if user.is_superuser %}
-                                            {{ sale.price|intcomma }}
-                                        {% else %}
-                                            {{ sale.display_price|intcomma }}
-                                        {% endif %} </td>
-                <td class="px-4 py-2">{{ sale.date|time:"H:i" }}</td>
-                {% if user.is_superuser %}
-                <td class="px-4 py-2 flex items-center space-x-2 rtl:space-x-reverse">
-                    <a href="{% url 'update_sale' sale.id %}" class="text-blue-600 hover:text-blue-800" title="ویرایش">
-                        <i data-feather="edit" class="w-4 h-4"></i></a>
-                    <a href="{% url 'delete_sale' sale.id %}" class="text-red-600 hover:text-red-800" title="حذف">
-                        <i data-feather="trash-2" class="w-4 h-4"></i></a>
-                </td>
-                {% endif %} 
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="7" class="px-4 py-2 text-gray-500">هیچ فاکتوری برای امروز ثبت نشده است.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+    <!-- هدر -->
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-gray-800">لیست فاکتورها</h2>
+        <a href="{% url 'create_sale' %}" 
+           class="bg-indigo-500 text-white px-4 py-2 rounded-xl shadow hover:bg-indigo-600 transition text-sm">
+           فاکتور جدید
+        </a>
+    </div>
 
-{% if sales %}
-<div class="flex justify-end font-bold bg-gray-50 border-t px-10 mt-2">
-    <span class="px-4 py-2 text-left text-bold">جمع کل:</span>
-    <span class="px-4 py-2 text-bold">{{ total_price|intcomma }}</span>
-</div>
-{% endif %}
+    <!-- فرم فیلتر تاریخ -->
+    <form method="get" class="mb-6 bg-white shadow-md rounded-2xl border border-gray-200 p-4 flex flex-wrap items-end gap-4">
+        <div>
+            <label for="date" class="block text-sm font-medium text-gray-600">تاریخ</label>
+            <input type="text" id="date" name="date" 
+                   value="{% if selected_jalali_date %}{{ selected_jalali_date }}{% elif request.GET.date %}{{ request.GET.date }}{% endif %}"
+                   class="datepicker border rounded-lg px-3 py-2 w-40 text-sm focus:ring focus:ring-blue-300"
+                   placeholder="تاریخ را انتخاب کنید" autocomplete="off">
+        </div>
+        <div>
+            <button type="submit" 
+                class="bg-indigo-500 text-white px-5 py-2 rounded-xl shadow hover:bg-indigo-600 transition">
+                فیلتر
+            </button>
+        </div>
+    </form>
 
+    <!-- کارت جمع کل و کمیسیون -->
+    <div class="flex flex-col md:flex-row gap-4 mb-6">
+        <div class="bg-white shadow-md rounded-2xl p-4 flex-1">
+            <p class="text-gray-600">جمع کل فاکتورها</p>
+            <p class="text-indigo-600 font-bold text-lg">{{ total_price|intcomma }}</p>
+        </div>
+        <div class="bg-white shadow-md rounded-2xl p-4 flex-1">
+            <p class="text-gray-600">جمع کمیسیون‌ها</p>
+            <p class="text-indigo-600 font-bold text-lg">{{ total_commission|intcomma }}</p>
+        </div>
+    </div>
+
+    <!-- 🖥 دسکتاپ: جدول -->
+    <div class="hidden md:block overflow-x-auto bg-white shadow-md rounded-2xl border border-gray-200">
+        <table class="w-full text-sm text-right text-gray-700">
+            <thead class="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-lg">
+                <tr>
+                    <th class="px-4 py-3 text-center">تاریخ</th>
+                    <th class="px-4 py-3 text-center">مشتری</th>
+                    <th class="px-4 py-3 text-center">پرسنل</th>
+                    <th class="px-4 py-3 text-center">خدمت</th>
+                    <th class="px-4 py-3 text-center">مبلغ</th>
+                    <th class="px-4 py-3 text-center">کمیسیون</th>
+                    <th class="px-4 py-3 text-center">عملیات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for sale in sales %}
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 text-gray-600">{{ sale.date|to_jalali:'%Y/%m/%d' }}</td>
+                    <td class="px-4 py-3">{{ sale.customer }}</td>
+                    <td class="px-4 py-3">{{ sale.personnel }}</td>
+                    <td class="px-4 py-3">{{ sale.work }}</td>
+                    <td class="px-4 py-3 font-semibold text-indigo-600">{{ sale.price|intcomma }}</td>
+                    <td class="px-4 py-3 font-semibold text-indigo-600">کمیسیون: {{ sale.commission_amount|intcomma }}</td>
+                    <td class="px-4 py-3 flex justify-center gap-3">
+                        <a href="{% url 'sale_images' sale.id %}" class="text-gray-700 hover:text-gray-900" title="عکس‌ها">
+                            <i class="fas fa-images"></i>
+                        </a>
+                        <a href="{% url 'update_sale' sale.id %}" class="text-blue-500 hover:text-blue-700" title="ویرایش">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'delete_sale' sale.id %}" class="text-red-500 hover:text-red-700" title="حذف">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-6 text-gray-500">هیچ فاکتوری ثبت نشده است ✨</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 📱 موبایل: کارت -->
+    <div class="md:hidden space-y-3">
+        {% for sale in sales %}
+        <div class="relative bg-white shadow rounded-lg border border-gray-200 overflow-hidden">
+
+            <!-- دکمه‌ها (سمت راست کارت، با سوایپ به چپ نمایش داده می‌شوند) -->
+            <div class="absolute inset-y-0 right-0 flex flex-col items-center justify-center gap-2 px-2 bg-white z-20 swipe-actions hidden">
+                <a href="{% url 'sale_images' sale.id %}" class="bg-gray-700 text-white px-3 py-1 rounded-lg shadow text-sm w-20 text-center">عکس‌ها</a>
+                <a href="{% url 'update_sale' sale.id %}" class="bg-blue-500 text-white px-3 py-1 rounded-lg shadow text-sm w-20 text-center">ویرایش</a>
+                <a href="{% url 'delete_sale' sale.id %}" class="bg-red-500 text-white px-3 py-1 rounded-lg shadow text-sm w-20 text-center">حذف</a>
+            </div>
+
+            <!-- کارت که سوایپ می‌شود -->
+            <div class="swipe-card relative bg-white p-3 transition-transform duration-300">
+                <!-- بالا: تاریخ + (سمت راست) مبلغ و کمیسیون -->
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex flex-col gap-1">
+                        <span class="text-gray-500 text-sm">{{ sale.date|to_jalali:'%Y/%m/%d' }}</span>
+                        <span class="text-gray-800 font-semibold text-sm">
+                            {{ sale.customer }} - {{ sale.personnel }}
+                        </span>
+                    </div>
+                    <div class="flex flex-col items-end gap-1">
+                        <span class="px-2 py-1 text-xs rounded-full border border-gray-300 bg-gray-50 text-gray-700">
+                            مبلغ: {{ sale.price|intcomma }}
+                        </span>
+                        <span class="px-2 py-1 text-xs rounded-full border border-gray-300 bg-gray-50 text-gray-700">
+                            کمیسیون: {{ sale.commission_amount|intcomma }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- پایین: خدمت -->
+                <div class="text-indigo-600 font-bold text-base">
+                    {{ sale.work }}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-center py-6 text-gray-500">هیچ فاکتوری ثبت نشده است ✨</p>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
 <script>
 $(document).ready(function() {
-    $("#jalali-datepicker").persianDatepicker({
-        format: 'YYYY-MM-DD',
-        autoClose: true,
-        observer: true,
-        initialValue: false
+
+    // Swipe کارت‌ها (همان کد قبلی)
+    let activeCard = null;
+
+    $(".swipe-card").each(function () {
+        let card = $(this);
+        let startX = 0;
+        let currentX = 0;
+
+        card.on("touchstart", function (e) {
+            startX = e.touches[0].clientX;
+            if (activeCard && activeCard[0] !== card[0]) {
+                activeCard.css("transform", "translateX(0)");
+                activeCard.siblings('.swipe-actions').addClass("hidden");
+                activeCard = null;
+            }
+        });
+
+        card.on("touchmove", function (e) {
+            currentX = e.touches[0].clientX - startX;
+            if (currentX < 0) {
+                card.css("transform", `translateX(${currentX}px)`);
+            }
+        });
+
+        card.on("touchend", function () {
+            if (currentX < -60) {
+                card.css("transition", "transform 0.3s cubic-bezier(0.25, 1.5, 0.5, 1)");
+                card.css("transform", "translateX(-110px)");
+                card.siblings('.swipe-actions').removeClass("hidden");
+                activeCard = card;
+                setTimeout(() => card.css("transition", "transform 0.3s ease"), 300);
+            } else {
+                card.css("transition", "transform 0.3s cubic-bezier(0.25, 1.5, 0.5, 1)");
+                card.css("transform", "translateX(0)");
+                card.siblings('.swipe-actions').addClass("hidden");
+                activeCard = null;
+                setTimeout(() => card.css("transition", "transform 0.3s ease"), 300);
+            }
+        });
     });
+    $('form').on('submit', function() {
+    const $dateInput = $(this).find('.datepicker');
+    if ($dateInput.val()) {
+        $dateInput.val($dateInput.val().replace(/\//g, '-'));
+    }
+});
+
 });
 </script>
-{% endblock content %}
+{% endblock %}

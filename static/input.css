@@ -14,7 +14,7 @@
 }
  
 .secondary {
-  @apply border border-gray-300 text-gray-700 bg-gray-100 hover:bg-gray-200 hover:underline
+  @apply border border-gray-300 text-gray-700 bg-gray-100 hover:bg-gray-200 
          focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
 }
  
@@ -32,7 +32,8 @@
 }
  
 .form-data {
-  @apply p-6 rounded-lg ; /* پس‌زمینه ملایم و فاصله داخلی */
+  @apply p-6 rounded-lg ;
+   background-color: #ffffff;
 }
  
 .form-data input,

@@ -3,31 +3,12 @@
 {% load humanize %}
 
 {% block content %}
-<style>
-  .pay-form {
-    background-color: #505556ff; 
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-  }
-  .pay-form input,
-  .pay-form textarea,
-  .pay-form select {
-    background-color: #ffffff !important; /* سفید کردن فیلدها */
-  }
-  .form-control {
-    min-height: 42px;
-  }
-  textarea.form-control {
-    min-height: 120px;
-  }
-</style>
-
 <div class="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-md mt-6 form-data">
   <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">ثبت پرداخت جدید</h1>
 
-  <form method="POST" id="payForm" class="space-y-4 form-data" >
+  <form method="POST" id="paymentFormMain" class="space-y-4 form-data">
     {% csrf_token %}
-   {% comment %} {% if form.errors %}
+   {% if form.errors %}
   <div class="text-red-600 mb-4">
     لطفا خطاهای زیر را اصلاح کنید:
     <ul>
@@ -43,7 +24,7 @@
       {% endfor %}
     </ul>
   </div>
-{% endif %} {% endcomment %}
+{% endif %}
 
     <!-- تاریخ و مبلغ -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -53,7 +34,12 @@
       </div>
       <div class="form-group">
         <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>
-        {{ form.amount }}
+        <input type="text" name="{{ form.amount.name }}" id="{{ form.amount.id_for_label }}" 
+               value="{{ form.amount.value|default_if_none:''|intcomma }}"
+               class="form-input price-field"
+               inputmode="numeric"
+               pattern="[0-9,]*">
+               
       </div>
     </div>
 
@@ -69,7 +55,7 @@
       </div>
     </div>
 
-    <!-- نوع دریافت و مشتری -->
+    <!-- نوع پرداخت و پرسنل -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="form-group">
         <label for="{{ form.pay_type.id_for_label }}">{{ form.pay_type.label }}</label>
@@ -88,10 +74,10 @@
     </div>
 
     <div class="flex justify-end space-x-4 pt-4">
-      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition duration-200">
+      <button type="submit" class="button primary">
         ذخیره پرداخت
       </button>
-      <a href="{% url 'home' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg transition duration-200">
+      <a href="{% url 'home' %}" class="button secondary">
         انصراف
       </a>
     </div>
@@ -101,13 +87,14 @@
 <script>
 document.addEventListener("DOMContentLoaded", function() {
   const payTypeSelect = document.getElementById("id_pay_type");
-  const customerField = document.getElementById("personnelField");
+  const personnelField = document.getElementById("personnelField");
   const sourceTypeSelect = document.getElementById("id_source_type");
   const bankField = document.getElementById("bankField");
+  const amountField = document.getElementById("id_amount");
 
   const payTypeData = {
-    {% for rt in form.pay_type.field.queryset %}
-      "{{ rt.id }}": {"is_personnel": {{ rt.is_personnel|yesno:"true,false" }}},
+    {% for pt in form.pay_type.field.queryset %}
+      "{{ pt.id }}": {"is_personnel": {{ pt.is_personnel|yesno:"true,false" }}},
     {% endfor %}
   };
 
@@ -118,56 +105,59 @@ document.addEventListener("DOMContentLoaded", function() {
   };
 
   function togglePersonnelField() {
-    const selected = document.getElementById("id_pay_type").value;
-    const personnelSelect = document.getElementById("id_personnel");
+    const selected = payTypeSelect.value;
+    const personnelSelect = $("#id_personnel");
+
     if (selected && payTypeData[selected]?.is_personnel) {
       personnelField.style.display = "block";
-      if ($(personnelSelect).data('select2')) {
-      $(personnelSelect).select2('destroy');
-    }
-    $(personnelSelect).select2({
-      width: "100%",
-      dir: "rtl",
-      placeholder: "انتخاب پرسنل..."
-    });
+      if (!personnelSelect.hasClass("select2-hidden-accessible")) {
+        personnelSelect.select2({ width: "100%" });
+      }
     } else {
-      customerField.style.display = "none";
-      document.getElementById("id_personnel").value = "";
-      if ($(personnelSelect).data('select2')) {
-        $(personnelSelect).select2('destroy');
-    }
+      personnelField.style.display = "none";
+      personnelSelect.val(null).trigger("change");
+      if (personnelSelect.hasClass("select2-hidden-accessible")) {
+        personnelSelect.select2("destroy");
+      }
     }
   }
 
   function toggleBankField() {
-  const selected = sourceTypeSelect.value;
-  const bankSelect = document.getElementById("id_bank");
-  if (selected && sourceTypeData[selected]?.requires_bank) {
-    bankField.style.display = "block";
-  if ($(bankSelect).data('select2')) {
-  $(bankSelect).select2('destroy');
-}
-$(bankSelect).select2({
-  width: "100%",
-  dir: "rtl",
-  placeholder: "انتخاب بانک..."
-});
-  }
-   else {
-    bankField.style.display = "none";
-    document.getElementById("id_bank").value = "";
-    if ($(bankSelect).data('select2')) {
-      $(bankSelect).select2('destroy');
+    const selected = sourceTypeSelect.value;
+    const bankSelect = $("#id_bank");
+
+    if (selected && sourceTypeData[selected]?.requires_bank) {
+      bankField.style.display = "block";
+      if (!bankSelect.hasClass("select2-hidden-accessible")) {
+        bankSelect.select2({ width: "100%" });
+      }
+    } else {
+      bankField.style.display = "none";
+      bankSelect.val(null).trigger("change");
+      if (bankSelect.hasClass("select2-hidden-accessible")) {
+        bankSelect.select2("destroy");
+      }
     }
   }
-}
 
+  function formatNumber(input) {
+    let value = input.value.replace(/,/g, '');
+    if (!isNaN(value) && value.length > 0) {
+      input.value = parseInt(value).toLocaleString('en-US');
+    }
+  }
 
   $(payTypeSelect).on('change.select2', togglePersonnelField);
   $(sourceTypeSelect).on('change.select2', toggleBankField);
 
   togglePersonnelField();
   toggleBankField();
+
+  if (amountField) {
+    amountField.addEventListener("input", function() {
+      formatNumber(this);
+    });
+  }
 
   // Persian Datepicker
   $("#id_date").persianDatepicker({
@@ -177,7 +167,7 @@ $(bankSelect).select2({
   });
 
   // بررسی فرم قبل از submit
-  document.getElementById("payForm").addEventListener("submit", function(e) {
+  document.getElementById("paymentFormMain").addEventListener("submit", function(e) {
     const selectedSource = sourceTypeSelect.value;
     const selectedPay = payTypeSelect.value;
     const bankValue = document.getElementById("id_bank").value;
@@ -191,15 +181,19 @@ $(bankSelect).select2({
       return;
     }
 
-    if (selectedPay && payTypeData[selectedRPay]?.is_personnel && !personnelValue) {
+    if (selectedPay && payTypeData[selectedPay]?.is_personnel && !personnelValue) {
       e.preventDefault();
-      alert("برای این نوع پرداخت انتخاب پرسنل الزامی است");
+      alert("برای این نوع پرداخت، انتخاب پرسنل الزامی است");
       personnelField.style.display = "block";
       document.getElementById("id_personnel").focus();
       return;
     }
+
+    // قبل از submit، کاماها را حذف کن
+    if (amountField) {
+      amountField.value = amountField.value.replace(/,/g, '');
+    }
   });
 });
-
 </script>
 {% endblock %}

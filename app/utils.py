@@ -1,3 +1,4 @@
+from datetime import date
 from io import BytesIO
 from PIL import Image
 from django.core.files.base import ContentFile
@@ -41,3 +42,29 @@ def gregorian_to_jalali_parts(gdatetime):
     jalali_time = jalali_dt.strftime("%H:%M")
 
     return jalali_date, jalali_time, weekday_name
+
+
+# utils.py
+
+def persian_to_english(s: str) -> str:
+    """
+    تبدیل اعداد فارسی به انگلیسی
+    مثال: "۱۴۰۴/۰۶/۰۵" → "1404/06/05"
+    """
+    persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+    english_digits = "0123456789"
+    return str(s).translate(str.maketrans(persian_digits, english_digits))
+
+
+def english_to_persian(s: str) -> str:
+
+    persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+    english_digits = "0123456789"
+    return str(s).translate(str.maketrans(english_digits, persian_digits))
+
+
+def jalali_to_gregorian(jalali_str: str) -> date:
+
+    jalali_str = persian_to_english(jalali_str)
+    y, m, d = map(int, jalali_str.split("/"))
+    return jdatetime.date(y, m, d).togregorian()

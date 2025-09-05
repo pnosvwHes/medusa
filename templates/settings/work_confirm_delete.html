@@ -1,0 +1,15 @@
+{% extends "app/base.html" %}
+{% block content %}
+<div class="max-w-lg mx-auto p-6 bg-white shadow-md rounded-xl text-center">
+    <h1 class="text-xl font-bold mb-4">حذف خدمت</h1>
+    <p>آیا مطمئن هستید که می‌خواهید خدمت <strong>{{ object.work_name }}</strong> را حذف کنید؟</p>
+
+    <form method="post" class="mt-6">
+        {% csrf_token %}
+        <div class="flex justify-between">
+            <a href="{% url 'works' %}" class="px-4 py-2 bg-gray-500 text-white rounded-lg">انصراف</a>
+            <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg">حذف</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

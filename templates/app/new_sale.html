@@ -1,360 +1,435 @@
 {% extends "app/base.html" %}
 {% load humanize %}
-
+{% load form_tags %}
 {% block content %}
-<div class="flex justify-center items-center min-h-screen bg-gray-100">
-  <div class="shadow-md rounded-xl p-6 w-full max-w-2xl mx-4 form-data">
+
+<div class="flex justify-center items-center min-h-screen form-data">
+  <div class="form-data w-full max-w-2xl mx-4">
     <h1 class="text-2xl font-bold mb-6 text-center">ثبت فاکتور جدید</h1>
+
     <form method="POST" id="saleForm" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
         {% for field in form %}
           {% if field.name != 'date' and field.name != 'time' %}
-          <div class="flex flex-col md:flex-row md:items-center gap-2">
-            <label for="{{ field.id_for_label }}" class="md:w-1/3 text-gray-700">{{ field.label }}</label>
-            <div class="md:w-2/3">
-              {% if field.name == 'price' %}
-                <input type="text" name="price" id="{{ field.id_for_label }}" class="border p-2 w-full price-field" 
-                       value="{{ field.value|default_if_none:''|intcomma }}">
-              {% else %}
-                {{ field }}
-              {% endif %}
-              {% if field.errors %}
-                <div class="text-red-500 text-sm mt-1">{{ field.errors.0 }}</div>
-              {% endif %}
+            <div class="flex flex-col md:flex-row md:items-center gap-2">
+              <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+              <div class="md:w-2/3">
+                {% if field.name == 'price' %}
+<input type="text" name="price" id="{{ field.id_for_label }}"
+       class="form-input price-field"
+       value="{{ field.value|default_if_none:''|intcomma }}">
+
+<small class="text-gray-500 price-in-words">
+  {% if field.value %}
+    {{ field.value|num2words_fa }}
+  {% endif %}
+</small>
+
+                {% elif field.field.widget.input_type == "select" %}
+                  {{ field|add_class:"form-select" }}
+                {% elif field.field.widget.input_type == "textarea" %}
+                  {{ field|add_class:"form-textarea" }}
+                {% else %}
+                  {{ field|add_class:"form-input" }}
+                {% endif %}
+                {% if field.errors %}
+                  <div class="form-error">{{ field.errors.0 }}</div>
+                {% endif %}
+              </div>
             </div>
-          </div>
           {% endif %}
         {% endfor %}
 
         <!-- تاریخ و ساعت -->
         <div class="flex flex-col md:flex-row md:items-center gap-2 col-span-1 md:col-span-2">
           <div class="flex-1 flex flex-col md:flex-row md:items-center gap-2">
-            <label for="{{ form.date.id_for_label }}" class="md:w-1/3 text-gray-700">{{ form.date.label }}</label>
+            <label for="{{ form.date.id_for_label }}" class="form-label">{{ form.date.label }}</label>
             <div class="md:w-2/3">
-              {{ form.date }}
+              {{ form.date|add_class:"form-input" }}
               {% if form.date.errors %}
-                <div class="text-red-500 text-sm mt-1">{{ form.date.errors.0 }}</div>
+                <div class="form-error">{{ form.date.errors.0 }}</div>
               {% endif %}
             </div>
           </div>
           <div class="flex-1 flex flex-col md:flex-row md:items-center gap-2">
-            <label for="{{ form.time.id_for_label }}" class="md:w-1/3 text-gray-700">{{ form.time.label }}</label>
+            <label for="{{ form.time.id_for_label }}" class="form-label">{{ form.time.label }}</label>
             <div class="md:w-2/3">
-              {{ form.time }}
+            <input type="time" 
+                  name="{{ form.time.name }}" 
+                  id="{{ form.time.id_for_label }}" 
+                  value="{{ current_time }}"
+                  class="form-input">
+        
               {% if form.time.errors %}
-                <div class="text-red-500 text-sm mt-1">{{ form.time.errors.0 }}</div>
+                <div class="form-error">{{ form.time.errors.0 }}</div>
               {% endif %}
             </div>
           </div>
         </div>
 
-<div class="col-span-1 md:col-span-2">
-  <label class="block text-gray-700 mb-2">عکس‌های فاکتور</label>
-  
-  <div id="imageContainer" class="grid grid-cols-2 gap-4 items-start">
-    <!-- کارت قبل -->
-    <div class="relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer" data-type="before">
-      <span class="text-gray-400 mb-1">قبل</span>
-      <img class="w-full h-full object-cover rounded hidden" />
-      <input type="file" accept="image/*" class="hidden imageInput" name="images_before" >
-    </div>
+        <!-- عکس‌های فاکتور -->
+        <div class="col-span-1 md:col-span-2">
+          <label class="form-label mb-2">عکس‌های فاکتور</label>
+          <div id="imageContainer" class="grid grid-cols-2 gap-4 items-start">
+            <div class="relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer" data-type="before">
+              <span class="text-gray-400 mb-1">قبل</span>
+              <img class="w-full h-full object-cover rounded hidden" />
+              <input type="file" accept="image/*" class="hidden imageInput" name="images_before" >
+            </div>
+            <div class="relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer" data-type="after">
+              <span class="text-gray-400 mb-1">بعد</span>
+              <img class="w-full h-full object-cover rounded hidden" />
+              <input type="file" accept="image/*" class="hidden imageInput" name="images_after">
+            </div>
+            <div id="addCardBtn" class="flex items-center justify-center border border-gray-300 rounded h-32 text-gray-500 cursor-pointer text-2xl font-bold">
+              +
+            </div>
+          </div>
+          <p class="form-help">حداکثر ۴ کارت عکس مجاز است</p>
+        </div>
 
-    <!-- کارت بعد -->
-    <div class="relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer" data-type="after">
-      <span class="text-gray-400 mb-1">بعد</span>
-      <img class="w-full h-full object-cover rounded hidden" />
-      <input type="file" accept="image/*" class="hidden imageInput" name="images_after">
-    </div>
+      </div>
 
-    <!-- دکمه + -->
-    <div id="addCardBtn" class="flex items-center justify-center border border-gray-300 rounded h-32 text-gray-500 cursor-pointer text-2xl font-bold">
-      +
-    </div>
-  </div>
-
-  <p class="text-gray-500 text-sm mt-1">حداکثر ۴ کارت عکس مجاز است</p>
-</div>
-
-<!-- Modal بزرگنمایی عکس -->
-<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50">
-  <img id="modalImage" class="max-w-full max-h-full rounded shadow-lg" />
-</div>
-
-
-      <div class="mt-6 flex justify-end gap-4">
+      <div class="form-actions">
         <button type="submit" class="button primary">ذخیره فاکتور</button>
       </div>
     </form>
   </div>
 </div>
 
+<!-- Modal بزرگنمایی عکس -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center hidden z-50">
+  <img id="modalImage" class="max-h-[80vh] max-w-[90vw] rounded shadow-lg"/>
+</div>
 
-<!-- Modal پرداخت -->
-<div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center hidden z-50">
-  <div class="bg-white rounded-xl w-full max-w-2xl p-6 mx-4">
+<!-- Payment Modal -->
+<div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 relative">
     <h2 class="text-xl font-bold mb-4">ثبت پرداخت‌ها</h2>
     <form id="paymentForm">
       {% csrf_token %}
       <input type="hidden" id="saleId" />
-      <div id="paymentRows"></div>
-      <button type="button" id="addRow" class="bg-green-500 text-white px-3 py-1 rounded mt-4">+ افزودن پرداخت</button>
-      <div class="mt-6 flex justify-end gap-4">
-        <button type="button" id="cancelPayment" class="button bg-red-500 hover:bg-red-600">ثبت فاکتور بدون پرداخت</button>
-        <button type="submit" class="button primary">ثبت پرداخت‌ها</button>
+      <div id="paymentRows" class="grid gap-4"></div>
+      <div class="flex justify-between mt-2 font-bold text-gray-700">
+        <span>جمع پرداخت‌ها: <span id="sumPayments">0</span></span>
+        <span>مبلغ فاکتور: <span id="invoiceAmount">0</span></span>
+      </div>
+      <button type="button" id="addRow" class="button button-primary mt-4 w-full">+ افزودن پرداخت</button>
+      <div class="flex flex-wrap justify-between mt-6 gap-2">
+        <button type="button" id="cancelPayment" class="button button-danger px-4 py-2 rounded">ثبت فاکتور بدون پرداخت</button>
+        <button type="submit" class="button button-primary px-4 py-2 rounded">ثبت پرداخت‌ها</button>
       </div>
     </form>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/num2persian@latest/dist/num2persian.min.js"></script>
 <script>
 let paymentMethods = [], banks = [];
 let invoiceTotalAmount = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
-  fetch("{% url 'get_payment_data' %}")
-    .then(res => res.json())
-    .then(data => {
-      paymentMethods = data.payment_methods;
-      banks = data.banks;
-    });
-  
-  const totalAmountField = document.getElementById("id_price");
-  if (totalAmountField) {
-    invoiceTotalAmount = parseFloat(totalAmountField.value.replace(/,/g, '')) || 0;
-    totalAmountField.addEventListener("change", updateInvoiceAmount);
-    totalAmountField.addEventListener("input", e => {
-      formatNumber(e.target);
-      updateInvoiceAmount.call(e.target);
-    });
-    formatNumber(totalAmountField);
-  }
+    // بارگذاری داده‌های پرداخت و بانک
+    fetch("{% url 'get_payment_data' %}")
+        .then(res => res.json())
+        .then(data => {
+            paymentMethods = data.payment_methods;
+            banks = data.banks;
+        });
 
-  document.getElementById("addRow").addEventListener("click", () => {
-    addPaymentRow(true);
-  });
-
-  // ثبت فاکتور
-  document.getElementById("saleForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    let priceStr = formData.get("price") || "0";
-    priceStr = priceStr.replace(/,/g, '');
-    formData.set("price", priceStr);
-    invoiceTotalAmount = parseFloat(priceStr) || 0;
-
-    fetch("{% url 'create_sale' %}", {
-      method: "POST",
-      body: formData,
-      headers: {
-        "X-Requested-With": "XMLHttpRequest",
-        "X-CSRFToken": formData.get("csrfmiddlewaretoken")
-      }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.sale_id) {
-          document.getElementById("saleId").value = data.sale_id;
-          openModal();
-        }
-      });
-  });
-
-  // ثبت پرداخت‌ها
-  document.getElementById("paymentForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    const saleId = document.getElementById("saleId").value;
-    const rows = document.querySelectorAll("#paymentRows > div");
-    const payments = [];
-
-    rows.forEach(row => {
-      const methodId = row.querySelector("select[name='method']").value;
-      const bankId = row.querySelector("select[name='bank']").value || null;
-      const amountStr = row.querySelector("input[name='amount']").value.replace(/,/g, '');
-      payments.push({
-        method_id: methodId,
-        bank_id: bankId,
-        amount: amountStr
-      });
-    });
-
-    fetch("{% url 'save_payments' %}", {
-      method: "POST",
-      body: JSON.stringify({
-        sale_id: saleId,
-        payments: payments
-      }),
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": document.querySelector("#paymentForm [name=csrfmiddlewaretoken]").value
-      }
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === "ok") {
-        alert("پرداخت‌ها ذخیره شد");
-        location.reload();
-      }
-    });
-  });
-});
-
-function updateInvoiceAmount() {
-  invoiceTotalAmount = parseFloat(this.value.replace(/,/g, '')) || 0;
-}
-
-function openModal() {
-  document.getElementById("paymentModal").classList.remove("hidden");
-  document.getElementById("paymentRows").innerHTML = "";
-  addPaymentRow(false);
-}
-
-function addPaymentRow(fillRemaining) {
-  const row = document.createElement("div");
-  row.classList.add("mb-4", "flex", "flex-col", "sm:flex-row", "gap-4", "items-center");
-
-  const methodSelect = document.createElement("select");
-  methodSelect.classList.add("border", "p-2", "w-full", "sm:w-auto");
-  methodSelect.name = "method";
-  methodSelect.innerHTML = paymentMethods.map(m => `<option value="${m.id}">${m.name}</option>`).join("");
-
-  const bankSelect = document.createElement("select");
-  bankSelect.classList.add("border", "p-2", "w-full", "sm:w-auto");
-  bankSelect.name = "bank";
-  bankSelect.innerHTML = `<option value="">- انتخاب بانک -</option>` +
-    banks.map(b => `<option value="${b.id}">${b.name}</option>`).join("");
-
-  const amountInput = document.createElement("input");
-  amountInput.type = "text";
-  amountInput.name = "amount";
-  amountInput.placeholder = "مبلغ";
-  amountInput.classList.add("border", "p-2", "w-full", "sm:w-auto", "price-field");
-
-  if (fillRemaining) {
-    let sumPaid = 0;
-    document.querySelectorAll("#paymentRows input[name='amount']").forEach(inp => {
-      let val = inp.value.replace(/,/g, '');
-      sumPaid += parseFloat(val) || 0;
-    });
-    const remaining = invoiceTotalAmount - sumPaid;
-    amountInput.value = remaining > 0 ? remaining.toLocaleString('en-US') : "";
-  } else {
-    amountInput.value = invoiceTotalAmount > 0 ? invoiceTotalAmount.toLocaleString('en-US') : "";
-  }
-
-  row.appendChild(methodSelect);
-  row.appendChild(bankSelect);
-  row.appendChild(amountInput);
-  document.getElementById("paymentRows").appendChild(row);
-
-  methodSelect.addEventListener("change", () => {
-    const selected = paymentMethods.find(m => m.id == methodSelect.value);
-    bankSelect.style.display = selected && selected.requires_bank ? "block" : "none";
-  });
-  methodSelect.dispatchEvent(new Event("change"));
-
-  amountInput.addEventListener("input", function() {
-    formatNumber(this);
-  });
-}
-
-function formatNumber(input) {
-  let value = input.value.replace(/,/g, '');
-  if (!isNaN(value) && value.length > 0) {
-    input.value = parseInt(value).toLocaleString('en-US');
-  }
-
-const container = document.getElementById("imageContainer");
-  const addBtn = document.getElementById("addCardBtn");
-  const imageModal = document.getElementById("imageModal");
-  const modalImage = document.getElementById("modalImage");
-
-  function handleCardClick(card) {
-    const input = card.querySelector("input");
-    input.click();
-    input.onchange = () => {
-      if (input.files.length > 0) {
-        const file = input.files[0];
-        const img = card.querySelector("img");
-        const reader = new FileReader();
-        reader.onload = e => {
-          img.src = e.target.result;
-          img.classList.remove("hidden");
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-  }
-
-  function setupCard(card) {
-    card.addEventListener("click", e => {
-      if (e.target.tagName !== "IMG") {
-        handleCardClick(card);
-      }
-    });
-
-    const img = card.querySelector("img");
-    img.addEventListener("click", e => {
-      e.stopPropagation();
-      modalImage.src = img.src;
-      imageModal.classList.remove("hidden");
-    });
-  }
-
-  function updateAddButton() {
-    const currentCards = container.querySelectorAll(".relative").length;
-    if (currentCards >= 4) {
-      addBtn.classList.add("hidden");
-    } else {
-      addBtn.classList.remove("hidden");
+    const totalAmountField = document.getElementById('id_price');
+    if (totalAmountField) {
+        invoiceTotalAmount = parseFloat(totalAmountField.value.replace(/,/g, '')) || 0;
+        totalAmountField.addEventListener("input", function() {
+            formatNumber(this);
+            invoiceTotalAmount = parseFloat(this.value.replace(/,/g, '')) || 0;
+            updatePaymentAmounts();
+            updatePriceWords();
+        });
+        formatNumber(totalAmountField);
+        updatePriceWords();
     }
-  }
 
-  // کارت‌های اولیه
-  const initialCards = container.querySelectorAll(".relative");
-  initialCards.forEach(card => setupCard(card));
-  updateAddButton();
+    // Select2 تغییر پرسنل
+    const personnelSelect = document.getElementById('id_personnel');
+    if (personnelSelect) {
+        personnelSelect.addEventListener('change', function() {
+            const personnelId = this.value;
+            const workSelect = document.getElementById('id_work');
+            if (!personnelId) {
+                workSelect.innerHTML = '<option value="" selected>- انتخاب خدمت -</option>';
+                return;
+            }
 
-  // اضافه کردن کارت جدید با +
-  addBtn.addEventListener("click", () => {
-    const currentCards = container.querySelectorAll(".relative").length;
-    if (currentCards >= 4) return;
+            fetch("{% url 'personnel_works' %}?personnel_id=" + personnelId)
+                .then(res => res.json())
+                .then(data => {
+                    workSelect.innerHTML = '<option value="" selected>- انتخاب خدمت -</option>';
+                    data.forEach(work => {
+                        const option = document.createElement('option');
+                        option.value = work.id;
+                        option.textContent = work.work_name;
+                        workSelect.appendChild(option);
+                    });
+                })
+                .catch(err => console.error("خطا در دریافت خدمات:", err));
+        });
+    }
 
-    const newCard = document.createElement("div");
-    newCard.className =
-      "relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer";
-    newCard.innerHTML = `<span class="text-gray-400 mb-1">اضافه</span>
-                         <img class="w-full h-full object-cover rounded hidden"/>
-                         <input type="file" accept="image/*" class="hidden imageInput" name="images_after">`;
-    container.insertBefore(newCard, addBtn);
-    setupCard(newCard);
+    // اضافه کردن ردیف پرداخت
+    document.getElementById('addRow').addEventListener('click', function() {
+        addPaymentRow(true);
+    });
+
+    // ثبت فاکتور
+    document.getElementById('saleForm').addEventListener("submit", function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        let priceStr = formData.get("price") || "0";
+        priceStr = priceStr.replace(/,/g, '');
+        formData.set("price", priceStr);
+        invoiceTotalAmount = parseFloat(priceStr) || 0;
+
+        fetch("{% url 'create_sale' %}", {
+            method: "POST",
+            body: formData,
+            headers: { 
+                "X-Requested-With": "XMLHttpRequest", 
+                "X-CSRFToken": formData.get("csrfmiddlewaretoken") 
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.sale_id) {
+                document.getElementById('saleId').value = data.sale_id;
+                openModal();
+            }
+        });
+    });
+
+    // ثبت پرداخت‌ها
+    document.getElementById('paymentForm').addEventListener("submit", function(e) {
+        e.preventDefault();
+        const saleId = document.getElementById('saleId').value;
+        const rows = document.querySelectorAll("#paymentRows > .payment-card");
+        const payments = [];
+        let sumPayments = 0;
+
+        rows.forEach(function(row) {
+            const methodId = row.querySelector("select[name='method']").value;
+            const bankId = row.querySelector("select[name='bank']").value || null;
+            let amountStr = row.querySelector("input[name='amount']").value.replace(/,/g, '');
+            let amount = parseFloat(amountStr) || 0;
+            sumPayments += amount;
+            payments.push({ method_id: methodId, bank_id: bankId, amount: amount });
+        });
+
+        if (sumPayments > invoiceTotalAmount) {
+            alert("جمع پرداخت‌ها نمی‌تواند از مبلغ فاکتور بیشتر باشد!");
+            return;
+        }
+
+        fetch("{% url 'save_payments' %}", {
+            method: "POST",
+            body: JSON.stringify({ sale_id: saleId, payments: payments }),
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": document.querySelector("#paymentForm [name=csrfmiddlewaretoken]").value
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "ok") {
+                alert("پرداخت‌ها ذخیره شد");
+                window.location.href = "{% url 'sales' %}";
+            }
+        });
+    });
+
+    // مودال پرداخت
+    function openModal() {
+        const modal = document.getElementById("paymentModal");
+        modal.classList.remove("hidden");
+        modal.style.display = "flex";
+        document.getElementById("paymentRows").innerHTML = '';
+        addPaymentRow(false);
+    }
+
+    function addPaymentRow(fillRemaining) {
+        const row = document.createElement('div');
+        row.className = 'payment-card p-4 border rounded-lg flex flex-col sm:flex-row gap-4 items-center';
+        
+        const methodSelect = document.createElement('select');
+        methodSelect.name = 'method';
+        methodSelect.className = 'border p-2 w-full sm:w-auto';
+        paymentMethods.forEach(m => {
+            const option = document.createElement('option');
+            option.value = m.id;
+            option.textContent = m.name;
+            methodSelect.appendChild(option);
+        });
+
+        const bankSelect = document.createElement('select');
+        bankSelect.name = 'bank';
+        bankSelect.className = 'border p-2 w-full sm:w-auto';
+        const bankOption = document.createElement('option');
+        bankOption.value = '';
+        bankOption.textContent = '- انتخاب بانک -';
+        bankSelect.appendChild(bankOption);
+        banks.forEach(b => {
+            const option = document.createElement('option');
+            option.value = b.id;
+            option.textContent = b.name;
+            bankSelect.appendChild(option);
+        });
+
+        const amountInput = document.createElement('input');
+        amountInput.type = 'text';
+        amountInput.name = 'amount';
+        amountInput.placeholder = 'مبلغ';
+        amountInput.className = 'border p-2 w-full sm:w-auto price-field';
+
+        if (fillRemaining) {
+            let sumPaid = 0;
+            document.querySelectorAll("#paymentRows input[name='amount']").forEach(input => {
+                let val = input.value.replace(/,/g, '');
+                sumPaid += parseFloat(val) || 0;
+            });
+            const remaining = invoiceTotalAmount - sumPaid;
+            amountInput.value = remaining > 0 ? remaining.toLocaleString('en-US') : "";
+        } else {
+            amountInput.value = invoiceTotalAmount > 0 ? invoiceTotalAmount.toLocaleString('en-US') : "";
+        }
+
+        row.appendChild(methodSelect);
+        row.appendChild(bankSelect);
+        row.appendChild(amountInput);
+        document.getElementById("paymentRows").appendChild(row);
+
+        methodSelect.addEventListener('change', function() {
+            const selected = paymentMethods.find(m => m.id == this.value);
+            bankSelect.style.display = (selected && selected.requires_bank) ? 'block' : 'none';
+        });
+        methodSelect.dispatchEvent(new Event('change'));
+
+        amountInput.addEventListener('input', function() { 
+            formatNumber(this); 
+            updatePriceWords();
+        });
+    }
+
+    function formatNumber(input) {
+        let value = input.value.replace(/,/g, '');
+        if (!isNaN(value) && value.length > 0) {
+            input.value = parseInt(value).toLocaleString('en-US');
+        }
+    }
+
+    function updatePaymentAmounts() {
+        document.querySelectorAll("#paymentRows input[name='amount']").forEach(input => {
+            let val = parseFloat(input.value.replace(/,/g,'')) || 0;
+            if (val > invoiceTotalAmount) input.value = invoiceTotalAmount.toLocaleString('en-US');
+        });
+    }
+
+    function updatePriceWords() {
+        const priceInput = document.querySelector('input.price-field');
+        const priceWords = document.querySelector('.price-in-words');
+        
+        if (priceInput && priceWords) {
+            const value = priceInput.value.replace(/,/g, '');
+            priceWords.textContent = value ? Num2persian(parseInt(value || 0)) : "";
+        }
+    }
+
+    // مودال تصاویر
+    const container = document.getElementById("imageContainer");
+    const addBtn = document.getElementById("addCardBtn");
+    const imageModal = document.getElementById("imageModal");
+    const modalImage = document.getElementById("modalImage");
+
+    function setupCard(card) {
+        const input = card.querySelector("input");
+        const img = card.querySelector("img");
+
+        card.addEventListener("click", function(e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'IMG') {
+                return;
+            }
+            input.click();
+        });
+
+        input.addEventListener("change", () => {
+            if (input.files.length > 0) {
+                const file = input.files[0];
+                const reader = new FileReader();
+                reader.onload = e => { 
+                    img.src = e.target.result;
+                    img.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        img.addEventListener("click", function(e) {
+            e.stopPropagation();
+            modalImage.src = this.src;
+            imageModal.classList.remove('hidden');
+        });
+    }
+
+    function updateAddButton() {
+        const currentCards = container.querySelectorAll(".relative").length;
+        addBtn.classList.toggle("hidden", currentCards >= 4);
+    }
+
+    container.querySelectorAll(".relative").forEach(card => { setupCard(card); });
     updateAddButton();
-  });
-  input.addEventListener("change", function() {
-    console.log(this.files);
-});
-  // بستن مودال با کلیک روی زمینه
-  imageModal.addEventListener("click", () => {
-    imageModal.classList.add("hidden");
-  });
 
-}
+    addBtn.addEventListener("click", () => {
+        if (container.querySelectorAll(".relative").length >= 4) return;
+        const newCard = document.createElement('div');
+        newCard.className = 'relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer';
+        newCard.innerHTML = `
+            <span class="text-gray-400 mb-1">اضافه</span>
+            <img class="w-full h-full object-cover rounded hidden"/>
+            <input type="file" accept="image/*" class="hidden imageInput" name="images_after">
+        `;
+        container.insertBefore(newCard, addBtn);
+        setupCard(newCard);
+        updateAddButton();
+    });
+
+    imageModal.addEventListener("click", () => { 
+        imageModal.classList.add('hidden'); 
+    });
+});
 </script>
 
 <style>
-.button.primary {
-  @apply bg-blue-500 hover:bg-blue-600;
+.button.primary { 
+    background-color: #3b82f6; 
+    color: white;
 }
-#id_date, #id_time {
-  width: 100%;
+.button.primary:hover { 
+    background-color: #2563eb;
 }
-@media (max-width: 768px) {
-  .md\:flex-row {
-    flex-direction: column;
-  }
-  .md\:w-1\/3, .md\:w-2\/3 {
-    width: 100%;
-  }
+.button.button-danger { 
+    background-color: #ef4444;
+    color: white;
+}
+.button.button-danger:hover { 
+    background-color: #dc2626;
+}
+#id_date, #id_time { width: 100%; }
+.payment-card { background: #f0f8ff; position: relative; }
+.payment-card button { position: absolute; top: 4px; right: 4px; }
+.modal.hidden { display: none !important; }
+@media (max-width: 768px) { 
+    .md\:flex-row { flex-direction: column; } 
+    .md\:w-1\/3, .md\:w-2\/3 { width: 100%; } 
 }
 </style>
 {% endblock %}

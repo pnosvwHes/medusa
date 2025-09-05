@@ -3,31 +3,14 @@
 {% load humanize %}
 
 {% block content %}
-<style>
-  .receipt-form {
-    background-color: #ebfaf5ff; 
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-  }
-  .receipt-form input,
-  .receipt-form textarea,
-  .receipt-form select {
-    background-color: #ffffff !important; /* سفید کردن فیلدها */
-  }
-  .form-control {
-    min-height: 42px;
-  }
-  textarea.form-control {
-    min-height: 120px;
-  }
-</style>
 
-<div class="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-md mt-6 receipt-form">
+
+<div class="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-md mt-6 form-data">
   <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">ثبت دریافت جدید</h1>
 
-  <form method="POST" id="receiptForm " class="space-y-4 receipt-form" >
+  <form method="POST" id="receiptForm" class="space-y-4 form-data" >
     {% csrf_token %}
-   {% if form.errors %}
+   {% comment %} {% if form.errors %}
   <div class="text-red-600 mb-4">
     لطفا خطاهای زیر را اصلاح کنید:
     <ul>
@@ -43,7 +26,7 @@
       {% endfor %}
     </ul>
   </div>
-{% endif %}
+{% endif %} {% endcomment %}
 
     <!-- تاریخ و مبلغ -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -53,7 +36,11 @@
       </div>
       <div class="form-group">
         <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>
-        {{ form.amount }}
+        <input type="text" name="{{ form.amount.name }}" id="{{ form.amount.id_for_label }}" 
+               value="{{ form.amount.value|default_if_none:''|intcomma }}"
+               class="form-input price-field"
+               inputmode="numeric"
+               pattern="[0-9,]*">
       </div>
     </div>
 
@@ -88,10 +75,10 @@
     </div>
 
     <div class="flex justify-end space-x-4 pt-4">
-      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition duration-200">
+      <button type="submit" class="button primary">
         ذخیره دریافت
       </button>
-      <a href="{% url 'home' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg transition duration-200">
+      <a href="{% url 'home' %}" class="button secondary">
         انصراف
       </a>
     </div>
@@ -104,6 +91,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const customerField = document.getElementById("customerField");
   const sourceTypeSelect = document.getElementById("id_source_type");
   const bankField = document.getElementById("bankField");
+  const amountField = document.getElementById("id_amount");
 
   const receiptTypeData = {
     {% for rt in form.receipt_type.field.queryset %}
@@ -119,55 +107,58 @@ document.addEventListener("DOMContentLoaded", function() {
 
   function toggleCustomerField() {
     const selected = receiptTypeSelect.value;
-    const customerSelect = document.getElementById("id_customer");
+    const customerSelect = $("#id_customer");
+
     if (selected && receiptTypeData[selected]?.is_customer) {
       customerField.style.display = "block";
-      if ($(customerSelect).data('select2')) {
-      $(customerSelect).select2('destroy');
-    }
-    $(customerSelect).select2({
-      width: "100%",
-      dir: "rtl",
-      placeholder: "انتخاب مشتری..."
-    });
+      if (!customerSelect.hasClass("select2-hidden-accessible")) {
+        customerSelect.select2({ width: "100%" });
+      }
     } else {
       customerField.style.display = "none";
-      document.getElementById("id_customer").value = "";
-      if ($(customerSelect).data('select2')) {
-        $(customerSelect).select2('destroy');
-    }
+      customerSelect.val(null).trigger("change");
+      if (customerSelect.hasClass("select2-hidden-accessible")) {
+        customerSelect.select2("destroy");
+      }
     }
   }
 
   function toggleBankField() {
-  const selected = sourceTypeSelect.value;
-  const bankSelect = document.getElementById("id_bank");
-  if (selected && sourceTypeData[selected]?.requires_bank) {
-    bankField.style.display = "block";
-  if ($(bankSelect).data('select2')) {
-  $(bankSelect).select2('destroy');
-}
-$(bankSelect).select2({
-  width: "100%",
-  dir: "rtl",
-  placeholder: "انتخاب بانک..."
-});
-  }
-   else {
-    bankField.style.display = "none";
-    document.getElementById("id_bank").value = "";
-    if ($(bankSelect).data('select2')) {
-      $(bankSelect).select2('destroy');
+    const selected = sourceTypeSelect.value;
+    const bankSelect = $("#id_bank");
+
+    if (selected && sourceTypeData[selected]?.requires_bank) {
+      bankField.style.display = "block";
+      if (!bankSelect.hasClass("select2-hidden-accessible")) {
+        bankSelect.select2({ width: "100%" });
+      }
+    } else {
+      bankField.style.display = "none";
+      bankSelect.val(null).trigger("change");
+      if (bankSelect.hasClass("select2-hidden-accessible")) {
+        bankSelect.select2("destroy");
+      }
     }
   }
-}
 
+  function formatNumber(input) {
+    let value = input.value.replace(/,/g, '');
+    if (!isNaN(value) && value.length > 0) {
+      input.value = parseInt(value).toLocaleString('en-US');
+    }
+  }
 
   $(receiptTypeSelect).on('change.select2', toggleCustomerField);
   $(sourceTypeSelect).on('change.select2', toggleBankField);
 
   toggleCustomerField();
   toggleBankField();
+
+  if (amountField) {
+    amountField.addEventListener("input", function() {
+      formatNumber(this);
+    });
+  }
 
   // Persian Datepicker
   $("#id_date").persianDatepicker({
@@ -198,8 +189,12 @@ $(bankSelect).select2({
       document.getElementById("id_customer").focus();
       return;
     }
+
+    // قبل از submit، کاماها را حذف کن
+    if (amountField) {
+      amountField.value = amountField.value.replace(/,/g, '');
+    }
   });
 });
-
 </script>
 {% endblock %}

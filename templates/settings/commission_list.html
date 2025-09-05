@@ -1,0 +1,53 @@
+{% extends "app/base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-6 text-center">کمیسیون پرسنل</h1>
+
+    <div class="flex justify-between items-center mb-4">
+        <a href="{% url 'new_commission' %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg">کمیسیون جدید</a>
+
+        <form method="get" class="flex items-center">
+            <label class="inline-flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" name="history" value="1"
+                       onchange="this.form.submit()"
+                       {% if request.GET.history == '1' %}checked{% endif %}>
+                <span>نمایش تاریخچه</span>
+            </label>
+        </form>
+    </div>
+
+    <div class="bg-white shadow-md rounded-xl overflow-hidden">
+        <table class="w-full text-center">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="p-3">پرسنل</th>
+                    <th class="p-3">خدمت</th>
+                    <th class="p-3">درصد</th>
+                    <th class="p-3">تاریخ شروع</th>
+                    <th class="p-3">تاریخ پایان</th>
+                    <th class="p-3">عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in commissions %}
+                <tr class="border-t">
+                    <td class="p-3">{{ c.personnel }}</td>
+                    <td class="p-3">{{ c.work }}</td>
+                    <td class="p-3">{{ c.percentage }}%</td>
+                    <td class="p-3">{{ c.start_date }}</td>
+                    <td class="p-3">{{ c.end_date }}</td>
+                    <td class="p-3">
+                        <a href="{% url 'update_commission' c.id %}" class="text-blue-600 hover:underline">ویرایش</a> |
+                        <a href="{% url 'delete_commission' c.id %}" class="text-red-600 hover:underline">حذف</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-3">هیچ کمیسیونی ثبت نشده است.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

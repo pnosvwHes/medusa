@@ -1,34 +1,170 @@
 {% extends 'app/base.html' %}
 {% load humanize %}
+{% load jalali_tags %}
 
 {% block content %}
-<h2>لیست پرداخت‌ها</h2>
-<table class="table-auto w-full border">
-    <thead>
-        <tr>
-            <th>تاریخ</th>
-            <th>نوع پرداخت</th>
-            <th>پرسنل</th>
-            <th>مبلغ</th>
-            <th>حساب بانکی</th>
-            <th>توضیحات</th>
-        </tr>
-    </thead>
-    <tbody>
+<div class="max-w-6xl mx-auto p-6">
+
+    <!-- هدر -->
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-gray-800">لیست پرداخت‌ها</h2>
+        <a href="{% url 'create_pay' %}" 
+           class="bg-indigo-500 text-white px-4 py-2 rounded-xl shadow hover:bg-indigo-600 transition text-sm">
+           پرداخت جدید
+        </a>
+    </div>
+
+    <!-- فرم فیلتر تاریخ -->
+    <form method="get" class="mb-6 bg-white shadow-md rounded-2xl border border-gray-200 p-4 flex flex-wrap items-end gap-4">
+        <div>
+            <label for="from_date" class="block text-sm font-medium text-gray-600">از تاریخ</label>
+            <input type="text" id="from_date" name="from_date" 
+                   value="{{ from_date|default_if_none:'' }}"
+                   class="datepicker border rounded-lg px-3 py-2 w-40 text-sm focus:ring focus:ring-blue-300">
+        </div>
+        <div>
+            <label for="to_date" class="block text-sm font-medium text-gray-600">تا تاریخ</label>
+            <input type="text" id="to_date" name="to_date" 
+                   value="{{ to_date|default_if_none:'' }}"
+                   class="datepicker border rounded-lg px-3 py-2 w-40 text-sm focus:ring focus:ring-blue-300">
+        </div>
+        <div>
+            <button type="submit" 
+                class="bg-indigo-500 text-white px-5 py-2 rounded-xl shadow hover:bg-indigo-600 transition">
+                فیلتر
+            </button>
+        </div>
+    </form>
+
+    <!-- 🖥 دسکتاپ: جدول -->
+    <div class="hidden md:block overflow-x-auto bg-white shadow-md rounded-2xl border border-gray-200">
+        <table class="w-full text-sm text-right text-gray-700">
+            <thead class="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-lg">
+                <tr>
+                    <th class="px-4 py-3 text-center">تاریخ</th>
+                    <th class="px-4 py-3 text-center">نوع پرداخت</th>
+                    <th class="px-4 py-3 text-center">پرسنل</th>
+                    <th class="px-4 py-3 text-center">مبلغ</th>
+                    <th class="px-4 py-3 text-center">حساب بانکی</th>
+                    <th class="px-4 py-3 text-center">توضیحات</th>
+                    <th class="px-4 py-3 text-center">عملیات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for pay in pays %}
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 text-gray-600">{{ pay.date|to_jalali:'%Y/%m/%d' }}</td>
+                    <td class="px-4 py-3">{{ pay.pay_type }}</td>
+                    <td class="px-4 py-3">{{ pay.personnel|default_if_none:"-" }}</td>
+                    <td class="px-4 py-3 font-semibold text-indigo-600">{{ pay.amount|intcomma }}</td>
+                    <td class="px-4 py-3">{{ pay.bank|default_if_none:"نقد" }}</td>
+                    <td class="px-4 py-3 text-gray-500">{{ pay.description|default_if_none:"" }}</td>
+                    <td class="px-4 py-3 flex justify-center gap-3">
+                        <a href="{% url 'update_pay' pay.id %}" class="text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'delete_pay' pay.id %}" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-6 text-gray-500">
+                        هیچ پرداختی ثبت نشده است ✨
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 📱 موبایل: کارت -->
+    <div class="md:hidden space-y-3">
         {% for pay in pays %}
-        <tr>
-            <td>{{ pay.date|date:"Y-m-d" }}</td>
-            <td>{{ pay.pay_type }}</td>
-            <td>{{ pay.personnel }}</td>
-            <td>{{ pay.amount|intcomma }}</td>
-            <td>{{ pay.bank }}</td>
-            <td>{{ pay.description }}</td>
-        </tr>
+        <div class="relative bg-white shadow rounded-lg border border-gray-200 overflow-hidden">
+
+            <!-- دکمه‌ها -->
+            <div class="absolute inset-y-0 right-0 flex flex-col items-center justify-center gap-2 px-2 bg-white z-10 swipe-actions hidden">
+                <a href="{% url 'update_pay' pay.id %}" class="bg-blue-500 text-white px-3 py-1 rounded-lg shadow text-sm w-20 text-center">ویرایش</a>
+                <a href="{% url 'delete_pay' pay.id %}" class="bg-red-500 text-white px-3 py-1 rounded-lg shadow text-sm w-20 text-center">حذف</a>
+            </div>
+
+            <!-- کارت -->
+            <div class="swipe-card relative bg-white p-3 transition-transform duration-300">
+                <!-- بالا: تاریخ و بانک -->
+                <div class="flex justify-between items-center text-sm mb-2">
+                    <span class="text-gray-500">{{ pay.date|to_jalali:'%Y/%m/%d' }}</span>
+                    <span class="px-2 py-0.5 text-xs rounded-full border border-gray-300 bg-gray-50 text-gray-700">
+                        {% if pay.bank %}{{ pay.bank.name }}{% else %}نقد{% endif %}
+                    </span>
+                </div>
+
+                <!-- وسط: پرسنل یا نوع پرداخت -->
+                <div class="text-gray-800 font-semibold text-base mb-2">
+                    {% if pay.pay_type.is_personnel and pay.personnel %}{{ pay.personnel }}{% else %}{{ pay.pay_type }}{% endif %}
+                </div>
+
+                <!-- پایین: مبلغ -->
+                <div class="text-indigo-600 font-bold text-xl">
+                    {{ pay.amount|intcomma }}
+                </div>
+            </div>
+        </div>
         {% empty %}
-        <tr>
-            <td colspan="6">هیچ رکوردی یافت نشد</td>
-        </tr>
+        <p class="text-center py-6 text-gray-500">هیچ پرداختی ثبت نشده است ✨</p>
         {% endfor %}
-    </tbody>
-</table>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+$(document).ready(function() {
+    $('.select2').select2({ width: '100%', minimumResultsForSearch: 8 });
+    $('.datepicker').persianDatepicker({ format: 'YYYY/MM/DD', autoClose: true });
+
+    let activeCard = null;
+
+    $(".swipe-card").each(function () {
+        let card = $(this);
+        let startX = 0;
+        let currentX = 0;
+
+        card.on("touchstart", function (e) {
+            startX = e.touches[0].clientX;
+            if(activeCard && activeCard[0] !== card[0]){
+                activeCard.css("transform", "translateX(0)");
+                activeCard.siblings('.swipe-actions').addClass("hidden");
+                activeCard = null;
+            }
+        });
+
+        card.on("touchmove", function (e) {
+            currentX = e.touches[0].clientX - startX;
+            if (currentX < 0) {
+                card.css("transform", `translateX(${currentX}px)`);
+            }
+        });
+
+        card.on("touchend", function () {
+            if (currentX < -60) {
+                // انیمیشن فنری
+                card.css("transition", "transform 0.3s cubic-bezier(0.25, 1.5, 0.5, 1)");
+                card.css("transform", "translateX(-110px)");
+                card.siblings('.swipe-actions').removeClass("hidden");
+                activeCard = card;
+                setTimeout(() => card.css("transition", "transform 0.3s ease"), 300);
+            } else {
+                card.css("transition", "transform 0.3s cubic-bezier(0.25, 1.5, 0.5, 1)");
+                card.css("transform", "translateX(0)");
+                card.siblings('.swipe-actions').addClass("hidden");
+                activeCard = null;
+                setTimeout(() => card.css("transition", "transform 0.3s ease"), 300);
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

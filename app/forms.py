@@ -17,7 +17,7 @@ class SaleForm(forms.ModelForm):
     date = JalaliDateField(
         label='تاریخ',
         widget=AdminJalaliDateWidget(
-            attrs={'class': 'border p-2 rounded w-full'}
+            attrs={'class': 'border p-2 rounded w-full jalali-datepicker'}
         ),
         initial=timezone.now().date(),    
     )
@@ -239,4 +239,5 @@ class CustomerForm(forms.ModelForm):
             'referrer': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
         }
         referrer = forms.ModelChoiceField(queryset=Customer.objects.all(), required=False)
+
 

@@ -1,68 +1,141 @@
 {% extends "app/base.html" %}
 {% load humanize %}
 
-
 {% block title %}لیست مشتریان{% endblock %}
- 
-{% block content %}
 
- <div class="flex justify-end m-4 gap-4">
-    
-    <form method="GET">
-        <a class="button secondary gap-3" type="submit" href="{% url 'customers' %}">حذف جستجو</a>
-        <input class="input secondary" type="search" name="filter" placeholder="تایپ عبارت جستجو" value="{{ request.GET.filter }}" >
-        <button class="button secondary gap-3" type="submit">جستجو</button>
-        
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+
+    <!-- هدر -->
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold text-gray-800">لیست مشتریان</h2>
+        <a href="{% url 'new_customer' %}" 
+           class="bg-indigo-500 text-white px-4 py-2 rounded-xl shadow hover:bg-indigo-600 transition text-sm">
+           مشتری جدید
+        </a>
+    </div>
+
+    <!-- فرم فیلتر نام مشتری -->
+    <form method="get" class="mb-6 bg-white shadow-md rounded-2xl border border-gray-200 p-4 flex flex-wrap items-end gap-4">
+        <div>
+            <input type="text" name="filter" placeholder="جستجوی نام مشتری"
+                   value="{{ request.GET.filter|default_if_none:'' }}"
+                   class="border rounded-lg px-3 py-2 w-60 text-sm focus:ring focus:ring-blue-300">
+        </div>
+        <div>
+            <button type="submit" 
+                class="bg-indigo-500 text-white px-5 py-2 rounded-xl shadow hover:bg-indigo-600 transition">
+                جستجو
+            </button>
+        </div>
     </form>
-    <a href="{% url 'new_customer' %}" class="bottun primary px-4 py-2 rounded-md ">مشتری جدید</a>
-  </div>
-  <h1 class="flex justify-center text-2xl font-semibold mb-4">فهرست مشتریان</h1>
- 
-  <div class="overflow-x-auto m-4">
-    <table id="customerTable" class="table-auto w-full border-collapse text-right">
-      <thead class="bg-gray-200">
-        <tr>
-          <th class="text-center border px-4 py-2">نام</th>
-          <th class="text-center border px-4 py-2">موبایل</th>
-          <th class="text-center border px-4 py-2">تعداد فاکتورها</th>
-          <th class="text-center border px-4 py-2">عملیات</th>
-        </tr>
-      </thead>
-      <tbody>
+
+    <!-- 🖥 دسکتاپ: جدول مشتریان -->
+    <div class="hidden md:block overflow-x-auto bg-white shadow-md rounded-2xl border border-gray-200">
+        <table class="w-full text-sm text-right text-gray-700">
+            <thead class="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-lg">
+                <tr>
+                    <th class="px-4 py-3 text-center">نام</th>
+                    <th class="px-4 py-3 text-center">موبایل</th>
+                    <th class="px-4 py-3 text-center">تعداد فاکتورها</th>
+                    <th class="px-4 py-3 text-center">عملیات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for customer in customers %}
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 text-center">{{ customer.name }}</td>
+                    <td class="px-4 py-3 text-center">{{ customer.mobile }}</td>
+                    <td class="px-4 py-3 text-center">{{ customer.sale_count }}</td>
+                    <td class="px-4 py-3 flex justify-center gap-3">
+                        <a href="{% url 'update_customer' customer.id %}" class="text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'delete_customer' customer.id %}" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center py-6 text-gray-500">
+                        هیچ مشتری‌ای ثبت نشده است ✨
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 📱 موبایل: کارت مشتریان -->
+    <div class="md:hidden space-y-3">
         {% for customer in customers %}
-        <tr> <td class="text-center border px-4 py-2">{{ customer.name }}</td>
-          <td class="text-center border px-4 py-2">{{ customer.mobile }}</td>
-          <td class="text-center border px-4 py-2">{{ customer.sale_count }}</td>
-          <td class="text-center border px-4 py-2 space-x-2 space-x-reverse">
-<a href="{% url 'delete_customer' customer.id %}" class="text-red-600 hover:underline">حذف</a>
-          </td>
-        </tr>
+        <div class="relative bg-white shadow rounded-lg border border-gray-200 overflow-hidden">
+
+            <!-- دکمه‌ها -->
+            <div class="absolute inset-y-0 right-0 flex flex-col items-center justify-center gap-2 px-2 bg-white z-10 swipe-actions hidden">
+                <a href="{% url 'update_customer' customer.id %}" class="bg-blue-500 text-white px-3 py-1 rounded-lg shadow text-sm w-20 text-center">ویرایش</a>
+                <a href="{% url 'delete_customer' customer.id %}" class="bg-red-500 text-white px-3 py-1 rounded-lg shadow text-sm w-20 text-center">حذف</a>
+            </div>
+
+            <!-- کارت -->
+            <div class="swipe-card relative bg-white p-3 transition-transform duration-300">
+                <div class="text-gray-800 font-semibold text-base mb-1">{{ customer.name }}</div>
+                <div class="text-gray-600 text-sm mb-1">موبایل: {{ customer.mobile }}</div>
+                <div class="text-indigo-600 font-bold text-lg">تعداد فاکتورها: {{ customer.sale_count }}</div>
+            </div>
+        </div>
         {% empty %}
-        <tr>
-          <td colspan="4" class="text-center text-gray-500 py-4">مشتری‌ای یافت نشد.</td>
-        </tr>
+        <p class="text-center py-6 text-gray-500">هیچ مشتری‌ای ثبت نشده است ✨</p>
         {% endfor %}
-      </tbody>
-    </table>
-  </div>
+    </div>
+
+</div>
 {% endblock %}
- 
+
 {% block extra_scripts %}
 <script>
-  $(document).ready(function() {
-    $('#customerTable').DataTable({
-      language: {
-        search: "جستجو:",
-        lengthMenu: "نمایش _MENU_ رکورد",
-        info: "نمایش _START_ تا _END_ از _TOTAL_",
-        infoEmpty: "هیچ رکوردی وجود ندارد",
-        infoFiltered: "(فیلتر شده از _MAX_ رکورد)",
-        paginate: {
-          previous: "قبلی",
-          next: "بعدی"
-        }
-      }
+$(document).ready(function() {
+
+    let activeCard = null;
+
+    $(".swipe-card").each(function () {
+        let card = $(this);
+        let startX = 0;
+        let currentX = 0;
+
+        card.on("touchstart", function (e) {
+            startX = e.touches[0].clientX;
+            if(activeCard && activeCard[0] !== card[0]){
+                activeCard.css("transform", "translateX(0)");
+                activeCard.siblings('.swipe-actions').addClass("hidden");
+                activeCard = null;
+            }
+        });
+
+        card.on("touchmove", function (e) {
+            currentX = e.touches[0].clientX - startX;
+            if (currentX < 0) {
+                card.css("transform", `translateX(${currentX}px)`);
+            }
+        });
+
+        card.on("touchend", function () {
+            if (currentX < -60) {
+                card.css("transition", "transform 0.3s cubic-bezier(0.25, 1.5, 0.5, 1)");
+                card.css("transform", "translateX(-110px)");
+                card.siblings('.swipe-actions').removeClass("hidden");
+                activeCard = card;
+                setTimeout(() => card.css("transition", "transform 0.3s ease"), 300);
+            } else {
+                card.css("transition", "transform 0.3s cubic-bezier(0.25, 1.5, 0.5, 1)");
+                card.css("transform", "translateX(0)");
+                card.siblings('.swipe-actions').addClass("hidden");
+                activeCard = null;
+                setTimeout(() => card.css("transition", "transform 0.3s ease"), 300);
+            }
+        });
     });
-  });
+});
 </script>
 {% endblock %}

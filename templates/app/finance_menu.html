@@ -1,0 +1,38 @@
+{% extends "app/base.html" %}
+{% block content %}
+<div class="max-w-md mx-auto p-6">
+    <h1 class="text-xl font-bold text-center mb-6">منوی مالی</h1>
+    
+    <div class="grid grid-cols-2 gap-4">
+        <a href="{% url 'create_pay' %}" class="flex flex-col items-center justify-center bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition">
+            <i class="fas fa-money-bill-wave text-3xl text-gray-700 mb-2"></i>
+            <span class="text-sm">پرداخت جدید</span>
+        </a>
+        
+        <a href="{% url 'pay_list' %}" class="flex flex-col items-center justify-center bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition">
+            <i class="fas fa-list text-3xl text-gray-700 mb-2"></i>
+            <span class="text-sm">لیست پرداخت‌ها</span>
+        </a>
+        
+        <a href="{% url 'create_receipt' %}" class="flex flex-col items-center justify-center bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition">
+            <i class="fas fa-receipt text-3xl text-gray-700 mb-2"></i>
+            <span class="text-sm">دریافت جدید</span>
+        </a>
+        
+        <a href="{% url 'receipt_list' %}" class="flex flex-col items-center justify-center bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition">
+            <i class="fas fa-list-alt text-3xl text-gray-700 mb-2"></i>
+            <span class="text-sm">لیست دریافت‌ها</span>
+        </a>
+        
+        <a href="{% url 'treasury_dashboard' %}" class="flex flex-col items-center justify-center bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition">
+            <i class="fas fa-archive text-3xl text-gray-700 mb-2"></i>
+            <span class="text-sm">گزارش کاردکس</span>
+        </a>
+        
+        <a href="{% url 'ledger_report' %}" class="flex flex-col items-center justify-center bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition">
+            <i class="fas fa-chart-line text-3xl text-gray-700 mb-2"></i>
+            <span class="text-sm">گزارش مالی</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

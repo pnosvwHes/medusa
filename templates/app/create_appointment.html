@@ -1,12 +1,52 @@
 {% extends "app/base.html" %}
- 
+
 {% block content %}
 <div class="container mt-5">
     <h2>ثبت رزرو جدید</h2>
-    <form method="post">
+    <form method="post" id="reservationForm">
         {% csrf_token %}
         {{ form.as_p }}  
-        <button type="submit" class="button primary">ذخیره</button>
+
+        <div class="mb-3">
+            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#newCustomerModal">
+                مشتری جدید
+            </button>
+        </div>
+
+        <button type="submit" class="btn btn-primary">ذخیره</button>
     </form>
+</div>
+
+<!-- Modal مشتری جدید -->
+<div class="modal fade" id="newCustomerModal" tabindex="-1" aria-labelledby="newCustomerModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="newCustomerForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="newCustomerModalLabel">مشتری جدید</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          {% csrf_token %}
+          <div class="mb-3">
+              <label for="id_fname" class="form-label">نام</label>
+              <input type="text" class="form-control" name="fname" id="id_fname" required>
+          </div>
+          <div class="mb-3">
+              <label for="id_lname" class="form-label">نام خانوادگی</label>
+              <input type="text" class="form-control" name="lname" id="id_lname" required>
+          </div>
+          <div class="mb-3">
+              <label for="id_mobile" class="form-label">موبایل</label>
+              <input type="text" class="form-control" name="mobile" id="id_mobile">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">لغو</button>
+          <button type="submit" class="btn btn-primary">ذخیره مشتری</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

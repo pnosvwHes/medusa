@@ -30,26 +30,30 @@ class UserProfile(AbstractBaseUser):
 
 class Personnel(BaseModel):
 
-    ON_SITE_CHOICES =[
+    ON_SITE_CHOICES = [
         ('بله', 'yes'),
         ('خیر', 'no'),
     ]
 
-    fname = models.CharField(max_length=1000)
-    lname = models.CharField(max_length=1000)
-    mobile = models.CharField(max_length=1000)
-    comment = models.TextField(blank=True)
-    on_site = models.CharField(max_length=3, choices=ON_SITE_CHOICES, default='بله')
-    created_at = models.DateTimeField(auto_now_add=True)
-    modified_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
-    
-    def name(self):
-        return self.fname+'-'+self.lname
+    fname = models.CharField("نام", max_length=1000)
+    lname = models.CharField("نام خانوادگی", max_length=1000)
+    mobile = models.CharField("موبایل", max_length=1000)
+    comment = models.TextField("توضیحات", blank=True)
+    on_site = models.CharField("حضور در محل", max_length=3, choices=ON_SITE_CHOICES, default='بله')
+    created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True)
+    modified_at = models.DateTimeField("آخرین تغییر", auto_now=True)
+    is_active = models.BooleanField("فعال", default=True)
 
+    class Meta:
+        verbose_name = "پرسنل"
+        verbose_name_plural = "پرسنل‌ها"
+
+    def name(self):
+        return f"{self.fname} {self.lname}"
 
     def __str__(self):
-        return self.fname+'-'+self.lname
+        return self.name()
+
 
 class Customer(BaseModel):
     fname = models.CharField(max_length=200)
@@ -124,10 +128,15 @@ class SaleImage(models.Model):
 
 
 class Work(BaseModel):
-    work_name = models.CharField(max_length=1000)
+    work_name = models.CharField("نام خدمت", max_length=1000)
+
+    class Meta:
+        verbose_name = "خدمت"
+        verbose_name_plural = "خدمات"
 
     def __str__(self):
         return self.work_name
+
     
 class PaymentMethod(BaseModel):
     name = models.CharField(max_length=100)
@@ -182,11 +191,18 @@ class Transaction(BaseModel):
     
 
 class PersonnelCommission(BaseModel):
-    personnel = models.ForeignKey("Personnel", on_delete=models.PROTECT)
-    work = models.ForeignKey("Work" , on_delete=  models.PROTECT)
-    percentage = models.IntegerField(default=60)
-    start_date = models.DateField()
-    end_date = models.DateField()
+    personnel = models.ForeignKey("Personnel", on_delete=models.PROTECT, verbose_name="پرسنل")
+    work = models.ForeignKey("Work", on_delete=models.PROTECT, verbose_name="خدمت")
+    percentage = models.IntegerField("درصد کمیسیون", default=60)
+    start_date = models.DateField("تاریخ شروع")
+    end_date = models.DateField("تاریخ پایان")
+
+    class Meta:
+        verbose_name = "کمیسیون پرسنل"
+        verbose_name_plural = "کمیسیون‌ها"
+
+    def __str__(self):
+        return f"{self.personnel} - {self.work} ({self.percentage}%)"
 
 
 class PersonnelUser(BaseModel):

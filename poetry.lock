@@ -266,6 +266,31 @@ files = [
 jalali-core = ">=1.0"
 
 [[package]]
+name = "khayyam"
+version = "3.0.17"
+description = "Persian Date & Time library (aka: Jalali Calendar) with timezone, DST(daylight-saving), full formatting & parsing support for python 2 & 3 including c extention"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "Khayyam-3.0.17-cp27-cp27m-macosx_10_11_x86_64.whl", hash = "sha256:aa389c52bda8813ca7af177ea19077455ac7ee64ae44c3eac44dc675be1bb316"},
+    {file = "Khayyam-3.0.17-cp36-cp36m-macosx_10_11_x86_64.whl", hash = "sha256:8b444aa453ad72d549e065be09a3312e6140a8e015850a890b2f27c8a435eade"},
+    {file = "Khayyam-3.0.17.tar.gz", hash = "sha256:d0a30c6e9caa56a7f730879df8f3fe0ad7d9fa8c57b0d8f479cfa0460a7647f2"},
+]
+
+[[package]]
+name = "num2fawords"
+version = "1.1"
+description = "A tool to convert numbers (int, float) into Persian words"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "num2fawords-1.1-py3-none-any.whl", hash = "sha256:982bc92ed3858e49ced0042c028d8ff236fbd6cbd316899bfed52e77dc7111e5"},
+    {file = "num2fawords-1.1.tar.gz", hash = "sha256:7b0161c8176ea28faf70ee937051022e9c921e07dc2d147c270ddbfa8ac53c35"},
+]
+
+[[package]]
 name = "numpy"
 version = "2.3.2"
 description = "Fundamental package for array computing in Python"
@@ -773,4 +798,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "020d5f7784792b4783e5162c3e732fd18261ac3d7763cd405592af5972383031"
+content-hash = "91d361c3023bbf5b100b59b434d0303ad533de0e1f752b5ef9dd46961020d7e2"
