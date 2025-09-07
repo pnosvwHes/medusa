@@ -1,4 +1,4 @@
-from datetime import timezone
+from django.utils import timezone
 from django.db import migrations
 
 def create_superuser(apps, schema_editor):
