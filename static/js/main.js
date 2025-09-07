@@ -18,10 +18,13 @@ document.addEventListener("DOMContentLoaded", function () {
   // Feather icons
   feather.replace();
 
-  // Mobile menu toggle
-  document
-    .getElementById("mobile-menu-button")
-    .addEventListener("click", function () {
-      document.getElementById("mobile-menu").classList.toggle("hidden");
-    });
+  // Mobile menu toggle (with safety check)
+  // const menuBtn = document.getElementById("mobile-menu-button");
+  // const menu = document.getElementById("mobile-menu");
+
+  // if (menuBtn && menu) {
+  //   menuBtn.addEventListener("click", function () {
+  //     menu.classList.toggle("hidden");
+  //   });
+  // }
 });

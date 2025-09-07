@@ -35,19 +35,31 @@ def home (request):
     sales = Sale.objects.all()
     return render(request, "app/home.html", {"sales": sales})
 
- 
+
 
 class SaleCreateView(CreateView, UserTrackMixin):
     template_name = "app/new_sale.html"
     form_class = SaleForm
     success_url = reverse_lazy("sales")
 
+    def form_valid(self, form):
+        sale = form.save()
+        # اگر درخواست Ajax بود → JSON برگردون
+        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({"sale_id": sale.id})
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        # در حالت Ajax خطاها رو هم به صورت JSON برگردون
+        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({"errors": form.errors}, status=400)
+        return super().form_invalid(form)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         current_time = timezone.now().astimezone(timezone.get_current_timezone())
         context['current_time'] = current_time.strftime('%H:%M')
         return context
-    
 class SaleUpdateView(UserTrackMixin, UpdateView):
     template_name = "app/edit_sale.html" 
     model = Sale

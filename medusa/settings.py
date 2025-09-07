@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'jalali_date',
     'django.contrib.humanize',
-    'django.contrib.postgres',
+    
 ]
 
 MIDDLEWARE = [
@@ -100,10 +100,20 @@ WSGI_APPLICATION = 'medusa.wsgi.application'
 #         "PORT": "5432",
 #     }
 # }
+# DATABASES = {
+#     "default":dj_database_url.config(conn_max_age=600)
+# }
+
 DATABASES = {
-    "default":dj_database_url.config(conn_max_age=600)
-}
- 
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'medusa_beauty',
+        'USER': 'masoud',
+        'PASSWORD': '1234',
+        'HOST': 'localhost',
+        'PORT': '3306',
+    }
+} 
 
 # import os
  

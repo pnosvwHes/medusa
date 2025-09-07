@@ -125,7 +125,7 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/num2persian@latest/dist/num2persian.min.js"></script>
+
 <script>
 let paymentMethods = [], banks = [];
 let invoiceTotalAmount = 0;
@@ -146,10 +146,10 @@ document.addEventListener("DOMContentLoaded", () => {
             formatNumber(this);
             invoiceTotalAmount = parseFloat(this.value.replace(/,/g, '')) || 0;
             updatePaymentAmounts();
-            updatePriceWords();
+            
         });
         formatNumber(totalAmountField);
-        updatePriceWords();
+        
     }
 
     // Select2 تغییر پرسنل
@@ -202,6 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .then(res => res.json())
         .then(data => {
+          console.log("response data:", data);
             if (data.sale_id) {
                 document.getElementById('saleId').value = data.sale_id;
                 openModal();
@@ -334,15 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function updatePriceWords() {
-        const priceInput = document.querySelector('input.price-field');
-        const priceWords = document.querySelector('.price-in-words');
-        
-        if (priceInput && priceWords) {
-            const value = priceInput.value.replace(/,/g, '');
-            priceWords.textContent = value ? Num2persian(parseInt(value || 0)) : "";
-        }
-    }
+
 
     // مودال تصاویر
     const container = document.getElementById("imageContainer");
