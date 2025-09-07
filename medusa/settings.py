@@ -84,7 +84,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'medusa_beauty',
         'USER': 'masoud',
-        'PASSWORD': '44806238@q',  # ← پسورد روی سرور هاست
+        'PASSWORD': '44806238@q',
         'HOST': 'localhost',
         'PORT': '3306',
     }
