@@ -29,10 +29,6 @@ DEBUG = False  # ← روی هاست production False باشه
 
 ALLOWED_HOSTS = ["medusa-beauty.ir", "www.medusa-beauty.ir"]  # ← دامنه هاست
 
-# THIRD_PARTY_APPS = [
-#     "django-browser-reload",
-#     "widget_tweaks",
-# ]
 
 INSTALLED_APPS = [
     'app',
@@ -54,7 +50,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_browser_reload.middleware.BrowserReloadMiddleware',
+    
     'app.middleware.LoginRequiredMiddleware', 
 ]
 
