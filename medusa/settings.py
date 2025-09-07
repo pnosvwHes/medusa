@@ -11,11 +11,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-import dj_database_url
+import os
+import pymysql  # ← اضافه شده برای جایگزینی mysqlclient
+pymysql.install_as_MySQLdb()  # ← اضافه شده
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -24,10 +25,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-e$ocm#*6udtm&cci87lo8w2j&#34u$#ev%)rpm8ixkv_&g9j^o'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False  # ← روی هاست production False باشه
 
-ALLOWED_HOSTS = ["*"]
-
+ALLOWED_HOSTS = ["medusa-beauty.ir", "www.medusa-beauty.ir"]  # ← دامنه هاست
 
 # THIRD_PARTY_APPS = [
 #     "django-browser-reload",
@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'jalali_date',
     'django.contrib.humanize',
-    
 ]
 
 MIDDLEWARE = [
@@ -60,8 +59,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'medusa.urls'
-
-
 
 TEMPLATES = [
     {
@@ -80,57 +77,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'medusa.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.postgresql",
-#         "NAME": "medusa_beauty",
-#         "USER": "postgres",
-#         "PASSWORD": "1234",
-#         "HOST": "127.0.0.1",
-#         "PORT": "5432",
-#     }
-# }
-# DATABASES = {
-#     "default":dj_database_url.config(conn_max_age=600)
-# }
-
+# ===================== DATABASE =====================
+# استفاده از PyMySQL بجای mysqlclient برای هاست های shared
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'medusa_beauty',
         'USER': 'masoud',
-        'PASSWORD': '1234',
+        'PASSWORD': '44806238@q',  # ← پسورد روی سرور هاست
         'HOST': 'localhost',
         'PORT': '3306',
     }
-} 
+}
 
-# import os
- 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.getenv('POSTGRES_DB', 'medusa_beauty'),
-#         'USER': os.getenv('POSTGRES_USER', 'postgres'),
-#         'PASSWORD': os.getenv('POSTGRES_PASSWORD', '1234'),
-#         'HOST': os.getenv('DB_HOST', 'db'),  # ← کلید حل مشکل
-#         'PORT': '5432',
-#     }
-# }
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
+# ===================== AUTH PASSWORD VALIDATION =====================
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -146,10 +106,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
 # LANGUAGE_CODE = 'fa-ir'
 
@@ -159,24 +117,26 @@ USE_I18N = True
 # USE_L10N = True
 # USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
+# ===================== STATIC & MEDIA =====================
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# تنظیمات تاریخ جلالی
 JALALI_DATE_FORMAT = "%Y/%m/%d _ %H:%M"
 
+# ===================== LOGIN/LOGOUT =====================
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'   # بعد از ورود کجا بره
 LOGOUT_REDIRECT_URL = 'login'
 
+# ===================== LOGGING =====================
 # LOGGING = {
 #     'version': 1,
 #     'disable_existing_loggers': False,
@@ -193,7 +153,3 @@ LOGOUT_REDIRECT_URL = 'login'
 #         },
 #     }
 # }
-
-import os
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
