@@ -1,3 +1,4 @@
+from datetime import timezone
 from django.db import migrations
 
 def create_superuser(apps, schema_editor):
@@ -7,7 +8,8 @@ def create_superuser(apps, schema_editor):
         User.objects.create_superuser(
             username='masoud',
             email='masoud.hesaraki1985@gmail.com',
-            password='1234'
+            password='1234',
+            last_login=timezone.now()  # ← اضافه شده
         )
 
 class Migration(migrations.Migration):
