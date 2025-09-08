@@ -4,7 +4,7 @@ import sys, os, traceback
 log_path = '/home/medusabeautyir/repositories/medusa/logs/passenger_startup.log'
 os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
-def log_startup_error(exc):
+def log_startup_error():
     with open(log_path, 'a') as f:
         f.write('==== Passenger startup error ====\n')
         f.write(traceback.format_exc())
@@ -25,9 +25,10 @@ try:
     # تنظیمات Django
     os.environ['DJANGO_SETTINGS_MODULE'] = 'medusa.settings'
 
+    # گرفتن WSGI application
     from django.core.wsgi import get_wsgi_application
     application = get_wsgi_application()
 
 except Exception:
-    log_startup_error(sys.exc_info())
+    log_startup_error()
     raise
