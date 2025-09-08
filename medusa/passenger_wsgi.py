@@ -1,11 +1,12 @@
-import os
-import sys
+import sys, os
 
-# مسیر پروژه (فولدری که manage.py هست)
-sys.path.insert(0, os.path.dirname(__file__))
+# مسیر پروژه‌ات (اصلاح کن بر اساس مسیر واقعی روی هاست)
+project_home = '/home/medusabeautyir/repositories/medusa'
 
-# تنظیمات Django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "medusa.settings")
+if project_home not in sys.path:
+    sys.path.append(project_home)
+
+os.environ['DJANGO_SETTINGS_MODULE'] = 'medusa.settings'
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
