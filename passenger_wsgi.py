@@ -1,5 +1,8 @@
 import sys, os, traceback
 
+log_path = '/home/medusabeautyir/repositories/medusa/logs/passenger_startup.log'
+os.makedirs(os.path.dirname(log_path), exist_ok=True)
+
 # مسیر پروژه
 project_home = '/home/medusabeautyir/repositories/medusa'
 if project_home not in sys.path:
@@ -17,7 +20,9 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'medusa.settings'
 try:
     from django.core.wsgi import get_wsgi_application
     application = get_wsgi_application()
-except Exception as e:
-    with open("/home/medusabeautyir/repositories/medusa/logs/passenger_startup.log", "w") as f:
-        f.write(str(e))
-    raisee
+except Exception:
+    with open(log_path, 'a') as f:
+        f.write('==== Passenger startup error ====\n')
+        f.write(traceback.format_exc())
+        f.write('\n\n')
+    raise
