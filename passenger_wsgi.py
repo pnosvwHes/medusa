@@ -17,7 +17,7 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'medusa.settings'
 try:
     from django.core.wsgi import get_wsgi_application
     application = get_wsgi_application()
-except Exception:
-    print("WSGI startup error:", file=sys.stderr)
-    traceback.print_exc()
-    raise
+except Exception as e:
+    with open("/home/medusabeautyir/repositories/medusa/logs/passenger_startup.log", "w") as f:
+        f.write(str(e))
+    raisee
