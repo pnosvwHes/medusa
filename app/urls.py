@@ -3,7 +3,7 @@ from app.views import *
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
-    path("", HomeDashboardView.as_view(), name="home"),
+    path("", HomeDashboardView.as_view(), name="sales"),
     path("sales/", SaleListView.as_view(), name="sales"),
     path("sale/new/", SaleCreateView.as_view(), name="create_sale"),
     path("sale/<int:pk>/update", SaleUpdateView.as_view(), name="update_sale"),
