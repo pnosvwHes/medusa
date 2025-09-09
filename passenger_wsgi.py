@@ -1,10 +1,6 @@
-import os
-import sys
+import os, sys
 
-# مسیر پروژه‌ات رو به sys.path اضافه کن
-sys.path.insert(0, os.path.dirname(__file__))
-
-# ست کردن متغیرهای محیطی Django
+sys.path.insert(0, "/home/medusabeautyir/repositories/medusa")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "medusa.settings")
 
 from django.core.wsgi import get_wsgi_application
