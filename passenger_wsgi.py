@@ -1,7 +1,10 @@
-import os, sys
+import sys
 
-sys.path.insert(0, "/home/medusabeautyir/repositories/medusa")
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "medusa.settings")
+def application(environ, start_response):
+    status = '200 OK'
+    output = b'Hello from Passenger + Django!'
 
-from django.core.wsgi import get_wsgi_application
-application = get_wsgi_application()
+    response_headers = [('Content-type', 'text/plain'),
+                        ('Content-Length', str(len(output)))]
+    start_response(status, response_headers)
+    return [output]
