@@ -21,7 +21,8 @@ dependencies = [
     "khayyam (>=3.0.17,<4.0.0)",
     "num2fawords (>=1.1,<2.0)",
     "mysqlclient (>=2.2.7,<3.0.0)",
-    "pymysql (>=1.1.2,<2.0.0)"
+    "pymysql (>=1.1.2,<2.0.0)",
+    "cryptography (>=45.0.7,<46.0.0)"
 ]
 
 [tool.poetry]
