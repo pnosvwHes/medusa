@@ -12,10 +12,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
-import pymysql  # ← اضافه شده برای جایگزینی mysqlclient
-pymysql.install_as_MySQLdb()  # ← اضافه شده
+import pymysql 
+from decouple import config
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
+pymysql.install_as_MySQLdb()  
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
@@ -27,8 +29,12 @@ SECRET_KEY = 'django-insecure-e$ocm#*6udtm&cci87lo8w2j&#34u$#ev%)rpm8ixkv_&g9j^o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False  # ← روی هاست production False باشه
 
-ALLOWED_HOSTS = ["medusa-beauty.ir", "www.medusa-beauty.ir"]  # ← دامنه هاست
-
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "medusa-beauty.ir",
+    "www.medusa-beauty.ir",
+]
 
 INSTALLED_APPS = [
     'app',
@@ -75,16 +81,20 @@ WSGI_APPLICATION = 'medusa.wsgi.application'
 
 # ===================== DATABASE =====================
 # استفاده از PyMySQL بجای mysqlclient برای هاست های shared
+
+DEBUG = config("DEBUG", default=False, cast=bool)
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'medusa_beauty',
-        'USER': 'masoud',
-        'PASSWORD': '44806238@q',
-        'HOST': 'localhost',
-        'PORT': '3306',
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": config("DB_NAME"),
+        "USER": config("DB_USER"),
+        "PASSWORD": config("DB_PASSWORD"),
+        "HOST": config("DB_HOST", default="localhost"),
+        "PORT": config("DB_PORT", default="3306"),
     }
 }
+
 
 # ===================== AUTH PASSWORD VALIDATION =====================
 AUTH_PASSWORD_VALIDATORS = [
