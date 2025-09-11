@@ -127,7 +127,7 @@ USE_I18N = True
 
 if os.path.exists('/home/medusabeautyir/medusa/'):
     # مسیر سرور
-    STATIC_ROOT = '/home/medusabeautyir/medusa/staticfiles'
+    STATIC_ROOT = '/home/medusabeautyir/public_html/static/'
     MEDIA_ROOT = '/home/medusabeautyir/medusa/media'
 else:
     # مسیر لوکال
@@ -137,6 +137,7 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 MEDIA_URL = '/media/'
+
 
 
 # Default primary key field type
