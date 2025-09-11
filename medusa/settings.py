@@ -124,12 +124,20 @@ USE_I18N = True
 # USE_TZ = True
 
 # ===================== STATIC & MEDIA =====================
+
+if os.path.exists('/home/medusabeautyir/medusa/'):
+    # مسیر سرور
+    STATIC_ROOT = '/home/medusabeautyir/medusa/staticfiles'
+    MEDIA_ROOT = '/home/medusabeautyir/medusa/media'
+else:
+    # مسیر لوکال
+    STATIC_ROOT = BASE_DIR / 'staticfiles'
+    MEDIA_ROOT = BASE_DIR / 'media'
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
