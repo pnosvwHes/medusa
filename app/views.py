@@ -716,14 +716,27 @@ def user_list_view(request):
 class CalendarView(ListView):
     template_name = 'app/calendar.html'
     model = Appointment
-
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        personnel_user = getattr(self.request.user, "personnel_profile", None)
         if self.request.user.is_superuser:
             context['personnel_list'] = Personnel.objects.all()
         else:
-            personnel_user = getattr(self.request.user, "personnel_profile", None)
+            
             context['personnel_list'] = Personnel.objects.filter(id=personnel_user.personnel.id)
+        
+        if personnel_user:
+            context['selected_personnel'] = personnel_user.personnel.id
+        else:
+
+            personnel_filter_id = self.request.GET.get('personnel')
+            if not personnel_filter_id :
+                personnel_filter = Personnel.objects.first()
+                personnel_filter_id = personnel_filter.id
+            context['selected_personnel'] = personnel_filter_id
+
         context['customer_list'] = Customer.objects.all()
         context['work_list'] = Work.objects.all()
         context['appointments'] = Appointment.objects.select_related('customer', 'personnel', 'work').all()
@@ -980,9 +993,17 @@ def gallery_view(request):
     
     # فیلتر بر اساس پرسنل (از طریق پارامتر GET)
     personnel_filter = request.GET.get('personnel')
+    print(personnel_filter)
+    
     if personnel_filter and request.user.is_superuser:
         images = images.filter(sale__personnel__id=personnel_filter)
+        personnel_filter = Personnel.objects.filter(id=personnel_filter).first()
+    else:
+    # اگر انتخابی نبود، اولین پرسنل موجود رو بیاور
+        personnel_filter = Personnel.objects.first()
     
+
+
     # در نهایت فقط عکس‌های "بعد"
     images = images.filter(image_type=SaleImage.AFTER)
     
