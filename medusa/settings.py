@@ -170,22 +170,38 @@ LOGOUT_REDIRECT_URL = 'login'
 #     }
 # }
 
+from pathlib import Path
+
+
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs/django.log'),
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "file": {
+            "level": "ERROR",  # فقط خطاها
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOG_DIR, "django-error.log"),
+            "formatter": "verbose",
+        },
+        "console": {
+            "level": "ERROR",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
         },
     },
-    'loggers': {
-        'django': {
-            'handlers': ['file'],
-            'level': 'DEBUG',
-            'propagate': True,
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name} {message}",
+            "style": "{",
         },
+    },
+    "root": {
+        "handlers": ["file", "console"],
+        "level": "ERROR",
     },
 }
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
