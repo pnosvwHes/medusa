@@ -216,7 +216,7 @@ LOGGING = {
         "django.request": {  # برای لاگ کردن خطاهای 500
             "handlers": ["file", "console"],
             "level": LOG_LEVEL,
-            "propagate": False,
+            "propagate": True,
         },
         "app": {  # لاگ‌های اپ خودت
             "handlers": ["file", "console"],
