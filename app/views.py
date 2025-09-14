@@ -175,9 +175,6 @@ class SaleListView(ListView):
     template_name = "app/sale_list.html"
     model = Sale
     context_object_name = "sales"
-    logger.info("✅ تست لاگ info")
-    logger.warning("⚠️ تست لاگ warning")
-    logger.error("❌ تست لاگ error")
     
     def get_queryset(self):
         selected_date_str = self.request.GET.get("date")

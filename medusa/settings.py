@@ -180,56 +180,47 @@ LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "ERROR")
 from pathlib import Path
 
 
-LOG_DIR = os.path.join(BASE_DIR, "logs")
-os.makedirs(LOG_DIR, exist_ok=True)
-
-
-LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "ERROR")
+# settings.py
 
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "[{asctime}] {levelname} {name} {message}",
+            "format": "{asctime} [{levelname}] {name}: {message}",
             "style": "{",
+            "datefmt": "%Y-%m-%d %H:%M:%S",  # فرمت تاریخ و ساعت
         },
         "simple": {
-            "format": "{levelname} {message}",
+            "format": "[{levelname}] {message}",
             "style": "{",
         },
     },
     "handlers": {
         "file": {
-            "level": LOG_LEVEL,
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(LOG_DIR, "django.log"),
-            "maxBytes": 5 * 1024 * 1024,  # حداکثر ۵ مگابایت
-            "backupCount": 5,
+            "level": "ERROR",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "logs", "django.log"),
             "formatter": "verbose",
         },
         "console": {
-            "level": LOG_LEVEL,
             "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": "verbose",
         },
     },
     "loggers": {
         "django": {
             "handlers": ["file", "console"],
-            "level": LOG_LEVEL,
+            "level": "ERROR",
             "propagate": True,
         },
-        "app": {  # لاگر اختصاصی پروژه
+        "app": {  # لاگ‌های اپ خودت
             "handlers": ["file", "console"],
-            "level": LOG_LEVEL,
+            "level": "ERROR",
             "propagate": False,
         },
     },
-    "root": {
-        "handlers": ["file", "console"],
-        "level": LOG_LEVEL,
-    },
 }
+
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
