@@ -49,6 +49,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "app.middleware.LogErrorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -56,7 +57,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "app.middleware.LogErrorsMiddleware",
     'app.middleware.LoginRequiredMiddleware', 
 ]
 
@@ -174,12 +174,12 @@ LOGOUT_REDIRECT_URL = 'login'
 import os
 from pathlib import Path
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "ERROR").upper()  # می‌تواند DEBUG، INFO، WARNING، ERROR، CRITICAL باشد
-
 LOG_DIR = BASE_DIR / "logs"
-LOG_DIR.mkdir(exist_ok=True)  # اگر فولدر وجود نداشت بساز
+LOG_DIR.mkdir(exist_ok=True)
+
+LOG_LEVEL = "ERROR"
 
 LOGGING = {
     "version": 1,
@@ -189,10 +189,6 @@ LOGGING = {
             "format": "{asctime} [{levelname}] {name}: {message}",
             "style": "{",
             "datefmt": "%Y-%m-%d %H:%M:%S",
-        },
-        "simple": {
-            "format": "[{levelname}] {message}",
-            "style": "{",
         },
     },
     "handlers": {
@@ -213,19 +209,18 @@ LOGGING = {
             "level": LOG_LEVEL,
             "propagate": True,
         },
-        "django.request": {  # برای لاگ کردن خطاهای 500
+        "django.request": {  # خطاهای 500 واقعی
             "handlers": ["file", "console"],
             "level": LOG_LEVEL,
-            "propagate": True,
+            "propagate": False,
         },
-        "app": {  # لاگ‌های اپ خودت
+        "app": {
             "handlers": ["file", "console"],
             "level": LOG_LEVEL,
             "propagate": True,
         },
     },
 }
-
 
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

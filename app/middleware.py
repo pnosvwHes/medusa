@@ -11,7 +11,7 @@ logger = logging.getLogger("app")  # همون logger که تو settings تعری
 class LogErrorsMiddleware:
     """
     Middleware برای لاگ کردن خطاهای 500 و Exception های غیرمنتظره.
-    فقط خطاها رو ثبت میکنه، info/debug ثبت نمیشه.
+    فقط خطاها ثبت می‌شوند.
     """
 
     def __init__(self, get_response):
@@ -22,10 +22,13 @@ class LogErrorsMiddleware:
             response = self.get_response(request)
             return response
         except Exception as e:
-            # لاگ کردن خطا با traceback کامل
             logger.error("💥 Exception رخ داده: %s\n%s", e, traceback.format_exc())
-            raise  # دوباره پرتاب میکنه تا Django همچنان 500 بده
+            raise
 
+    def process_exception(self, request, exception):
+        logger.error("💥 Exception رخ داده در process_exception: %s\n%s", exception, traceback.format_exc())
+
+        
 class LoginRequiredMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
