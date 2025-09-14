@@ -7,7 +7,7 @@ from django.views.generic import CreateView, ListView, UpdateView, DeleteView, T
 from django.contrib import messages
 from django.utils import timezone
 from jalali_date import datetime2jalali, date2jalali
-from django.db.models import Sum, F, Q, Count, Max
+from django.db.models import Sum, F, Q, Count, Max, Min, DateField
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime as gdatetime, timedelta
 from app.forms import *
@@ -20,6 +20,7 @@ from app.mixins import UserTrackMixin
 from django.db.models.functions import TruncDate
 from .sms import customer_sms, personnel_sms, send_sms
 import logging
+from django.db.models.functions import Cast
 
 MAX_IMAGES = 4
 MAX_SIZE = (1024, 1024)  # طول یا عرض حداکثر
@@ -174,7 +175,10 @@ class SaleListView(ListView):
     template_name = "app/sale_list.html"
     model = Sale
     context_object_name = "sales"
-
+    logger.info("✅ تست لاگ info")
+    logger.warning("⚠️ تست لاگ warning")
+    logger.error("❌ تست لاگ error")
+    
     def get_queryset(self):
         selected_date_str = self.request.GET.get("date")
 
@@ -184,12 +188,15 @@ class SaleListView(ListView):
                 target_date = jalali_date.togregorian()
             else:
                 target_date = timezone.now().date()
-
+            start_datetime = gdatetime.combine(target_date, gdatetime.min.time())
+            end_datetime = start_datetime + timedelta(days=1)
             if self.request.user.is_superuser:
                 sales = (
-                    Sale.objects.filter(date__date=target_date)
+                    Sale.objects.filter(date__gte=start_datetime, date__lt=end_datetime)
                     .order_by("-date")
                 )
+                print(sales.__len__)
+                print(target_date)  
                 logger.info(
                     "Admin viewed sales list",
                     extra={
@@ -203,9 +210,7 @@ class SaleListView(ListView):
                 personnel = personneluser.get_personnel() if personneluser else None
                 if personnel:
                     sales = (
-                        Sale.objects.filter(
-                            date__date=target_date, personnel=personnel
-                        )
+                        Sale.objects.filter(date__gte=start_datetime, date__lt=end_datetime, personnel=personnel)
                         .annotate(display_price=F("commission_amount"))
                         .order_by("-date")
                     )
@@ -218,12 +223,7 @@ class SaleListView(ListView):
                             "count": sales.count(),
                         },
                     )
-                else:
-                    sales = Sale.objects.none()
-                    logger.warning(
-                        "User without personnel profile tried to access sales list",
-                        extra={"user": getattr(self.request.user, "id", None)},
-                    )
+              
 
             return sales
 
@@ -1185,7 +1185,7 @@ class CalendarView(ListView):
         if self.request.user.is_superuser:
             personnel_list = Personnel.objects.all()
         else:
-<<<<<<< HEAD
+
             personnel_user = getattr(self.request.user, "personnel_profile", None)
             personnel_list = Personnel.objects.filter(id=personnel_user.personnel.id if personnel_user else None)
         customer_list = Customer.objects.all()
@@ -1204,11 +1204,12 @@ class CalendarView(ListView):
             extra={"user": getattr(self.request.user, "id", None)}
         )
 
-=======
+
             
-            context['personnel_list'] = Personnel.objects.filter(id=personnel_user.personnel.id)
+        
         
         if personnel_user:
+            context['personnel_list'] = Personnel.objects.filter(id=personnel_user.personnel.id)
             context['selected_personnel'] = personnel_user.personnel.id
         else:
 
@@ -1221,7 +1222,7 @@ class CalendarView(ListView):
         context['customer_list'] = Customer.objects.all()
         context['work_list'] = Work.objects.all()
         context['appointments'] = Appointment.objects.select_related('customer', 'personnel', 'work').all()
->>>>>>> cd302cd9e3a938d0d1e767293058ac3f097f1810
+
         return context
 import logging
 from django.views.decorators.csrf import csrf_exempt
@@ -1523,11 +1524,10 @@ def gallery_view(request):
     
     if personnel_filter and request.user.is_superuser:
         images = images.filter(sale__personnel__id=personnel_filter)
-<<<<<<< HEAD
+
         logger.info(f"Filtered images by personnel {personnel_filter}", extra={"user": getattr(request.user, "id", None)})
 
     # فقط عکس‌های "بعد"
-=======
         personnel_filter = Personnel.objects.filter(id=personnel_filter).first()
     else:
     # اگر انتخابی نبود، اولین پرسنل موجود رو بیاور
@@ -1536,7 +1536,6 @@ def gallery_view(request):
 
 
     # در نهایت فقط عکس‌های "بعد"
->>>>>>> cd302cd9e3a938d0d1e767293058ac3f097f1810
     images = images.filter(image_type=SaleImage.AFTER)
 
     # دریافت لیست مشتریان و پرسنل برای فیلترها
@@ -1627,16 +1626,36 @@ class HomeDashboardView(TemplateView):
         if not is_super and personnel:
             sales = sales.filter(personnel=personnel)
 
-        daily_sales = (
-            sales.annotate(day=TruncDate("date"))
-                 .values("day")
-                 .annotate(commission=Sum("commission_amount"), total=Sum("price"))
-                 .order_by("day")
-        )
+        min_date = sales.aggregate(min_date=Min('date'))['min_date']
+        max_date = sales.aggregate(max_date=Max('date'))['max_date']
+
+        daily_sales = []
+        if min_date and max_date:
+            current = min_date.date()
+            last = max_date.date()
+            while current <= last:
+                start = gdatetime.combine(current, gdatetime.min.time())
+                end = start + timedelta(days=1)
+                day_sales = sales.filter(date__gte=start, date__lt=end).aggregate(
+                    commission=Sum('commission_amount'),
+                    total=Sum('price')
+                )
+                daily_sales.append({
+                    'day': current,
+                    'commission': day_sales['commission'] or 0,
+                    'total': day_sales['total'] or 0
+                })
+                current += timedelta(days=1)
+                
+
+
         sales_chart = []
         for row in daily_sales:
+            day_str = str(row["day"])
+
+            day_date = gdatetime.strptime(day_str, "%Y-%m-%d").date()
             sales_chart.append({
-                "date": jdatetime.date.fromgregorian(date=row["day"]).strftime("%Y-%m-%d"),
+                "date": jdatetime.date.fromgregorian(date=day_date).strftime("%Y-%m-%d"),
                 "commission": int(row["commission"]) or 0,
                 "remainder": ((int(row["total"]) or 0) - (int(row["commission"]) or 0)) if is_super else 0
             })
@@ -1657,7 +1676,7 @@ class HomeDashboardView(TemplateView):
         appt_chart = []
         for row in daily_appts:
             appt_chart.append({
-                "date": jdatetime.date.fromgregorian(date=row["day"]).strftime("%Y-%m-%d"),
+                "date": jdatetime.date.fromgregorian(date=day_date).strftime("%Y-%m-%d"),
                 "count": row["count"]
             })
         context["appt_chart"] = appt_chart
@@ -1665,15 +1684,17 @@ class HomeDashboardView(TemplateView):
 
         # ===== 4. تعداد فاکتورها =====
         sales_count = (
-            sales.annotate(day=TruncDate("date"))
-                 .values("day")
-                 .annotate(count=Count("id"))
-                 .order_by("day")
-        )
+            sales.annotate(day=Cast("date", output_field=DateField()))
+                .values("day")
+                .annotate(count=Count("id"))
+                .order_by("day"))
+ 
         sales_count_chart = []
         for row in sales_count:
+            day_str = str(row["day"])
+            day_date = gdatetime.strptime(day_str, "%Y-%m-%d").date()
             sales_count_chart.append({
-                "date": jdatetime.date.fromgregorian(date=row["day"]).strftime("%Y-%m-%d"),
+                "date": jdatetime.date.fromgregorian(date=day_date).strftime("%Y-%m-%d"),
                 "count": row["count"]
             })
         context["sales_count_chart"] = sales_count_chart
@@ -1682,17 +1703,6 @@ class HomeDashboardView(TemplateView):
         context["is_super"] = is_super
         return context
 
-        
-import logging
-import jdatetime
-from django.http import JsonResponse
-from django.urls import reverse_lazy
-from django.views.generic import UpdateView
-from .models import Pay
-from .forms import PayForm
-from .utils import persian_to_english  # اگر داری
-
-logger = logging.getLogger(__name__)
 
 class PayUpdateView(UpdateView):
     template_name = "app/edit_pay.html"
@@ -1745,14 +1755,6 @@ class PayUpdateView(UpdateView):
         request.POST = data
         return super().post(request, *args, **kwargs)
 
-import logging
-import jdatetime
-from django.http import JsonResponse
-from django.urls import reverse_lazy
-from django.views.generic import UpdateView
-from .models import Receipt
-from .forms import ReceiptForm
-from .utils import persian_to_english  # اگر داری
 
 logger = logging.getLogger(__name__)
 
@@ -2136,3 +2138,22 @@ class PersonnelCommissionDeleteView(DeleteView):
             logger.error(f"Error deleting commission {self.object.id} by user {request.user.id}: {e}")
             from django.http import HttpResponseServerError
             return HttpResponseServerError("خطایی در حذف کمیسیون رخ داد.")
+        
+class CustomerListView(ListView):
+    template_name = "app/customer_list.html"
+    model = Customer
+    context_object_name = "customers"
+
+    def get_queryset(self):
+        filter_value = self.request.GET.get("filter")
+        queryset = super().get_queryset()
+
+        if filter_value:
+            queryset = queryset.filter(
+                Q(name__search=filter_value) | Q(mobile__search=filter_value)
+            )
+            logger.info(f"Customer search applied: filter='{filter_value}', results={queryset.count()}")
+        else:
+            logger.info("Customer list viewed without filter")
+
+        return queryset
