@@ -171,16 +171,15 @@ LOGOUT_REDIRECT_URL = 'login'
 # }
 # settings.py
 
+import os
+from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "ERROR").upper()  # می‌تواند DEBUG، INFO، WARNING، ERROR، CRITICAL باشد
 
-LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "ERROR")  
-
-from pathlib import Path
-
-
-# settings.py
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)  # اگر فولدر وجود نداشت بساز
 
 LOGGING = {
     "version": 1,
@@ -189,7 +188,7 @@ LOGGING = {
         "verbose": {
             "format": "{asctime} [{levelname}] {name}: {message}",
             "style": "{",
-            "datefmt": "%Y-%m-%d %H:%M:%S",  # فرمت تاریخ و ساعت
+            "datefmt": "%Y-%m-%d %H:%M:%S",
         },
         "simple": {
             "format": "[{levelname}] {message}",
@@ -198,9 +197,9 @@ LOGGING = {
     },
     "handlers": {
         "file": {
-            "level": "ERROR",
+            "level": LOG_LEVEL,
             "class": "logging.FileHandler",
-            "filename": os.path.join(BASE_DIR, "logs", "django.log"),
+            "filename": LOG_DIR / "django.log",
             "formatter": "verbose",
         },
         "console": {
@@ -211,16 +210,22 @@ LOGGING = {
     "loggers": {
         "django": {
             "handlers": ["file", "console"],
-            "level": "ERROR",
+            "level": LOG_LEVEL,
             "propagate": True,
+        },
+        "django.request": {  # برای لاگ کردن خطاهای 500
+            "handlers": ["file", "console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
         },
         "app": {  # لاگ‌های اپ خودت
             "handlers": ["file", "console"],
-            "level": "ERROR",
+            "level": LOG_LEVEL,
             "propagate": True,
         },
     },
 }
+
 
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
