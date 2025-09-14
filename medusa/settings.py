@@ -217,7 +217,7 @@ LOGGING = {
         "app": {  # لاگ‌های اپ خودت
             "handlers": ["file", "console"],
             "level": "ERROR",
-            "propagate": False,
+            "propagate": True,
         },
     },
 }
