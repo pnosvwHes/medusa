@@ -169,14 +169,46 @@ LOGOUT_REDIRECT_URL = 'login'
 #         },
 #     }
 # }
+# settings.py
 
+<<<<<<< HEAD
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "ERROR")  
+
+=======
 from pathlib import Path
 
 
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
 
+>>>>>>> cd302cd9e3a938d0d1e767293058ac3f097f1810
 LOGGING = {
+<<<<<<< HEAD
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': LOG_LEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/django.log'),
+            'maxBytes': 5 * 1024 * 1024,   # حداکثر ۵ مگابایت
+            'backupCount': 5,              # ۵ نسخه بکاپ نگه می‌داره
+            'formatter': 'verbose',
+=======
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {
@@ -185,17 +217,41 @@ LOGGING = {
             "class": "logging.FileHandler",
             "filename": os.path.join(LOG_DIR, "django-error.log"),
             "formatter": "verbose",
+>>>>>>> cd302cd9e3a938d0d1e767293058ac3f097f1810
         },
+<<<<<<< HEAD
+        'console': {
+            'level': LOG_LEVEL,
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+=======
         "console": {
             "level": "ERROR",
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
+>>>>>>> cd302cd9e3a938d0d1e767293058ac3f097f1810
     },
+<<<<<<< HEAD
+    'loggers': {
+        # لاگ‌های داخلی جنگو
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': LOG_LEVEL,
+            'propagate': True,
+=======
     "formatters": {
         "verbose": {
             "format": "[{asctime}] {levelname} {name} {message}",
             "style": "{",
+>>>>>>> cd302cd9e3a938d0d1e767293058ac3f097f1810
+        },
+        # لاگر اختصاصی پروژه خودت
+        'app': {
+            'handlers': ['file', 'console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
         },
     },
     "root": {
