@@ -1,5 +1,5 @@
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
 *.sqlite3
@@ -7,3 +7,11 @@ __pycache__/
 media/
 staticfiles/
 .env
+.vscode/
+.idea/
+venv/
+env/
+.venv/
+node_modules/
+.DS_Store
+Thumbs.db
