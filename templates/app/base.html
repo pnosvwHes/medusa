@@ -29,17 +29,19 @@
 <style>
 .mobile-footer {
     position: fixed;
-    bottom: 10px; /* فاصله کمی از پایین */
-    left: 50%;
-    transform: translateX(-50%);
-    width: auto;
-    background: transparent; /* بدون باکس */
+    bottom: 10px;
+    left: 0;
+    width: 100%;
+    background: transparent;
     z-index: 50;
-    padding: 0 10px;
+    padding: 5px 0;
     display: flex;
-    justify-content: center;
-    gap: 20px; /* فاصله بین آیتم‌ها */
+    justify-content: flex-start; /* آیتم‌ها از چپ شروع شوند */
+    gap: 15px; /* فاصله بین آیتم‌ها */
     flex-wrap: nowrap; /* همه در یک خط */
+    overflow-x: auto; /* فعال کردن اسکرول افقی */
+    -webkit-overflow-scrolling: touch; /* اسکرول نرم در موبایل */
+    box-shadow: 0 -1px 5px rgba(0,0,0,0.1);
 }
 
 .mobile-footer a {
@@ -49,44 +51,34 @@
     justify-content: center;
     text-align: center;
     white-space: nowrap;
+    flex: 0 0 auto; /* اندازه ثابت متناسب با محتوا */
+    padding: 0 8px;
 }
 
 .mobile-footer a i {
-    font-size: 2.5rem; /* بزرگتر */
-    margin-bottom: 6px;
+    font-size: 2.2rem;
+    margin-bottom: 4px;
     transition: all 0.2s ease;
 }
 
 .mobile-footer a span {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
 }
 
-.mobile-footer a:hover i {
-    transform: translateY(-4px);
-}
-
-/* کاهش فاصله و سایز در موبایل‌های باریک */
-@media (max-width: 450px) {
-    .mobile-footer {
-        gap: 10px; /* کمتر کردن فاصله بین آیتم‌ها */
-        padding: 0 5px;
-    }
+/* واکنش‌گرایی موبایل‌های خیلی باریک */
+@media (max-width: 400px) {
     .mobile-footer a i {
-        font-size: 1.8rem; /* کوچک شدن آیکون‌ها */
+        font-size: 1.6rem;
     }
     .mobile-footer a span {
-        font-size: 0.7rem; /* کوچک شدن متن */
+        font-size: 0.7rem;
+    }
+    .mobile-footer a {
+        padding: 0 5px;
     }
 }
-
-.dropdown-menu {
-    min-width: 180px;
-}
-
-body {
-    padding-bottom: 120px; /* کمی بیشتر از ارتفاع فوتر */
-}
 </style>
+
 
 </head>
 <body class="bg-formreport">
