@@ -36,31 +36,58 @@
     background: transparent; /* بدون باکس */
     z-index: 50;
     padding: 0 10px;
+    display: flex;
+    justify-content: center;
+    gap: 20px; /* فاصله بین آیتم‌ها */
+    flex-wrap: nowrap; /* همه در یک خط */
+}
+
+.mobile-footer a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .mobile-footer a i {
     font-size: 2.5rem; /* بزرگتر */
     margin-bottom: 6px;
+    transition: all 0.2s ease;
 }
 
 .mobile-footer a span {
     font-size: 0.85rem;
-    text-align: center;
-    white-space: nowrap; /* جلوگیری از شکستن متن */
 }
 
 .mobile-footer a:hover i {
     transform: translateY(-4px);
-    transition: all 0.2s ease;
+}
+
+/* کاهش فاصله و سایز در موبایل‌های باریک */
+@media (max-width: 450px) {
+    .mobile-footer {
+        gap: 10px; /* کمتر کردن فاصله بین آیتم‌ها */
+        padding: 0 5px;
+    }
+    .mobile-footer a i {
+        font-size: 1.8rem; /* کوچک شدن آیکون‌ها */
+    }
+    .mobile-footer a span {
+        font-size: 0.7rem; /* کوچک شدن متن */
+    }
 }
 
 .dropdown-menu {
     min-width: 180px;
 }
+
 body {
     padding-bottom: 120px; /* کمی بیشتر از ارتفاع فوتر */
 }
 </style>
+
 </head>
 <body class="bg-formreport">
 
