@@ -37,7 +37,7 @@ class LoginRequiredMiddleware:
         # مسیرهای آزاد
         allowed_urls = [settings.LOGIN_URL]
         # تلاش می‌کنیم URL های نام‌گذاری شده رو اضافه کنیم، اگر وجود نداشتن خطا رو نادیده می‌گیریم
-        for name in ['booking_calendar', 'appointment_list']:
+        for name in ['booking_calendar', 'appointment_list', 'login', 'logout']:
             try:
                 allowed_urls.append(reverse(name))
             except NoReverseMatch:
