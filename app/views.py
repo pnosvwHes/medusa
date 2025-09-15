@@ -1150,17 +1150,30 @@ class TreasuryDashboardView(ListView):
 @user_passes_test(is_admin)
 def create_user_view(request):
     logger.info("Accessed create_user_view", extra={"user": getattr(request.user, "id", None)})
+
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)  # ⚡ هش پسورد قبل از ذخیره
+            password = form.cleaned_data.get("password")
+            if password:
+                user.set_password(password)  # هش کردن پسورد
+            user.save()  # حالا کاربر را ذخیره کن
+            
             messages.success(request, "کاربر با موفقیت ساخته شد.")
-            logger.info("User created successfully", extra={"user_id": user.id, "created_by": getattr(request.user, "id", None)})
+            logger.info(
+                "User created successfully",
+                extra={"user_id": user.id, "created_by": getattr(request.user, "id", None)}
+            )
             return redirect('users')
         else:
-            logger.warning("User creation form invalid", extra={"errors": form.errors, "submitted_by": getattr(request.user, "id", None)})
+            logger.warning(
+                "User creation form invalid",
+                extra={"errors": form.errors, "submitted_by": getattr(request.user, "id", None)}
+            )
     else:
         form = CustomUserCreationForm()
+
     return render(request, 'app/new_user.html', {'form': form})
 
 @login_required
@@ -2154,3 +2167,35 @@ class CustomerListView(ListView):
             logger.info("Customer list viewed without filter")
 
         return queryset
+    
+
+def edit_user(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    
+    if request.method == "POST":
+        username = request.POST.get("username")
+        email = request.POST.get("email")
+        password = request.POST.get("password")  # پسورد جدید
+        
+        # به‌روزرسانی اطلاعات
+        user.username = username
+        user.email = email
+        
+        if password:
+            user.set_password(password)  # هش کردن پسورد
+        user.save()
+        
+        messages.success(request, "کاربر با موفقیت ویرایش شد.")
+        return redirect('users')
+    
+    return render(request, "accounts/edit_user.html", {"user": user})
+
+def delete_user(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    
+    if request.method == "POST":
+        user.delete()
+        messages.success(request, "کاربر با موفقیت حذف شد.")
+        return redirect('users_list')
+    
+    return render(request, "accounts/delete_user_confirm.html", {"user": user})

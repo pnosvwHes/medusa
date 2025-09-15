@@ -54,4 +54,6 @@ urlpatterns = [
     path("commission/new/", PersonnelCommissionCreateView.as_view(), name="new_commission"),
     path("commission/<int:pk>/update/", PersonnelCommissionUpdateView.as_view(), name="update_commission"),
     path("commission/<int:pk>/delete/", PersonnelCommissionDeleteView.as_view(), name="delete_commission"),
+    path('users/<int:user_id>/edit/', edit_user, name='edit_user'),
+    path('users/<int:user_id>/delete/', delete_user, name='delete_user'),
 ]

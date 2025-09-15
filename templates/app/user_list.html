@@ -13,7 +13,7 @@
       margin: 0 auto;
   ">
       {% for user in users %}
-          
+          <a href="{% url 'edit_user' user.id %}" style="text-decoration: none; color: inherit;">
               <div style="
                   border: 1px solid #ddd;
                   border-radius: 8px;
@@ -31,6 +31,7 @@
       {% empty %}
           <p style="grid-column: 1 / -1; text-align: center;">کاربری وجود ندارد.</p>
       {% endfor %}
+      </a>
   </div>
 
   <div style="text-align: center; margin-top: 20px;">

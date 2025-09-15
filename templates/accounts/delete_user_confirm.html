@@ -1,0 +1,11 @@
+{% extends "app/base.html" %}
+
+{% block content %}
+<h2 style="text-align: center;">آیا از حذف کاربر "{{ user.username }}" مطمئن هستید؟</h2>
+
+<form method="POST" style="text-align: center; margin-top: 20px;">
+    {% csrf_token %}
+    <button type="submit" style="padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 5px;">🗑 حذف</button>
+    <a href="{% url 'edit_user' user.id %}" style="padding: 10px 20px; background: #ccc; color: black; border-radius: 5px; text-decoration: none;">❌ انصراف</a>
+</form>
+{% endblock %}
