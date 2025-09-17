@@ -1302,7 +1302,8 @@ def create_appointment(request):
             # ارسال پیامک به مشتری
             customer_mobile = appointment.customer.mobile
             customer_name = appointment.customer.fname
-            customer_full_name = appointment.customer.name
+            customer_l_name = appointment.customer.lname
+            customer_full_name = f"{customer_name} {customer_l_name}"
             work = appointment.work.work_name
             appointment_time = appointment.start_time
             personnel_name = appointment.personnel.fname
