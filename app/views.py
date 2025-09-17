@@ -1219,7 +1219,7 @@ class CalendarView(ListView):
         
         
         if personnel_user:
-            context['personnel_list'] = Personnel.objects.filter(id=personnel_user.personnel.id)
+            # context['personnel_list'] = Personnel.objects.filter(id=personnel_user.personnel.id)
             context['selected_personnel'] = personnel_user.personnel.id
         else:
 
