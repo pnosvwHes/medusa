@@ -48,6 +48,7 @@ class Personnel(BaseModel):
         verbose_name = "پرسنل"
         verbose_name_plural = "پرسنل‌ها"
 
+    @property
     def name(self):
         return f"{self.fname} {self.lname}"
 
