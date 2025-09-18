@@ -1665,6 +1665,7 @@ class HomeDashboardView(TemplateView):
             day_str = str(row["day"])
 
             day_date = gdatetime.strptime(day_str, "%Y-%m-%d").date()
+            
             sales_chart.append({
                 "date": jdatetime.date.fromgregorian(date=day_date).strftime("%Y-%m-%d"),
                 "commission": int(row["commission"]) or 0,
@@ -1679,13 +1680,16 @@ class HomeDashboardView(TemplateView):
             appointments = appointments.filter(personnel=personnel)
 
         daily_appts = (
-            appointments.annotate(day=TruncDate("start_time"))
-                        .values("day")
-                        .annotate(count=Count("id"))
-                        .order_by("day")
+            appointments
+            .annotate(day=Cast("start_time", output_field=DateField()))
+            .values("day")
+            .annotate(count=Count("id"))
+            .order_by("day")
         )
+        print(daily_appts.__len__)
         appt_chart = []
         for row in daily_appts:
+            print (day_date)
             appt_chart.append({
                 "date": jdatetime.date.fromgregorian(date=day_date).strftime("%Y-%m-%d"),
                 "count": row["count"]

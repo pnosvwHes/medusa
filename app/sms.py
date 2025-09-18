@@ -5,6 +5,7 @@ API_TOKEN = config("IPPANEL_API_KEY")
 BASE_URL = "https://edge.ippanel.com/v1"
 
 def send_sms(recipients, message):
+    print(message)
     from_number = '+9890000145'
     url = f"{BASE_URL}/api/send"
     headers = {
