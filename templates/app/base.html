@@ -76,7 +76,15 @@
         padding: 0 5px;
     }
 }
+
+/* ✅ فاصله برای جلوگیری از پوشاندن دکمه‌ها در موبایل */
+@media (max-width: 992px) {
+    body:has(.mobile-footer) {
+        padding-bottom: 7rem; /* هم‌اندازه h-28 */
+    }
+}
 </style>
+
 
 
 </head>
@@ -152,40 +160,42 @@
         </div>
     </div>
 </nav>
-
+<!-- فوتر موبایل -->
 <nav class="mobile-footer lg:hidden">
     <div class="flex justify-center items-center gap-20 h-28">
-       <a href="{% url 'home' %}" class="flex flex-col items-center {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-    <i class="fas fa-home"></i>
-    <span>خانه</span>
-</a>
+        <a href="{% url 'home' %}" class="flex flex-col items-center {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+            <i class="fas fa-home"></i>
+            <span>خانه</span>
+        </a>
 
-<a href="{% url 'sales' %}" class="flex flex-col items-center {% if request.resolver_match.url_name == 'sales' %}active{% endif %}">
-    <i class="fas fa-file-invoice"></i>
-    <span>فاکتورها</span>
-</a>
+        <a href="{% url 'sales' %}" class="flex flex-col items-center {% if request.resolver_match.url_name == 'sales' %}active{% endif %}">
+            <i class="fas fa-file-invoice"></i>
+            <span>فاکتورها</span>
+        </a>
 
-<a href="{% url 'booking_calendar' %}" class="flex flex-col items-center {% if request.resolver_match.url_name == 'booking_calendar' %}active{% endif %}">
-    <i class="fas fa-calendar"></i>
-    <span>رزرو</span>
-</a>
-
+        <a href="{% url 'booking_calendar' %}" class="flex flex-col items-center {% if request.resolver_match.url_name == 'booking_calendar' %}active{% endif %}">
+            <i class="fas fa-calendar"></i>
+            <span>رزرو</span>
+        </a>
 
         <!-- مالی موبایل -->
         <a href="{% url 'finance_menu' %}" class="flex flex-col items-center text-purple-600">
-        <i class="fas fa-dollar-sign"></i>
-        <span>مالی</span>
+            <i class="fas fa-dollar-sign"></i>
+            <span>مالی</span>
         </a>
 
         <!-- تنظیمات موبایل -->
         {% if request.user.is_authenticated %}
         <a href="{% url 'settings_menu' %}" class="flex flex-col items-center text-gray-600">
-        <i class="fas fa-cog"></i>
-        <span>تنظیمات</span>
+            <i class="fas fa-cog"></i>
+            <span>تنظیمات</span>
         </a>
         {% endif %}
     </div>
 </nav>
+
+<!-- فاصله برای جلوگیری از پوشاندن دکمه‌ها -->
+<div class="lg:hidden h-28"></div>
 
 {% block content %}{% endblock %}
 

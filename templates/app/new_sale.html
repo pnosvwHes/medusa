@@ -17,9 +17,9 @@
               <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
               <div class="md:w-2/3">
                 {% if field.name == 'price' %}
-<input type="text" name="price" id="{{ field.id_for_label }}"
-       class="form-input price-field"
-       value="{{ field.value|default_if_none:''|intcomma }}">
+                <input type="text" name="price" id="{{ field.id_for_label }}"
+                      class="form-input price-field"
+                      value="{{ field.value|default_if_none:''|intcomma }}">
 
 <small class="text-gray-500 price-in-words">
   {% if field.value %}
@@ -116,10 +116,10 @@
         <span>جمع پرداخت‌ها: <span id="sumPayments">0</span></span>
         <span>مبلغ فاکتور: <span id="invoiceAmount">0</span></span>
       </div>
-      <button type="button" id="addRow" class="button button-primary mt-4 w-full">+ افزودن پرداخت</button>
+      <button type="button" id="addRow" class="button primary mt-4 w-full">+ افزودن پرداخت</button>
       <div class="flex flex-wrap justify-between mt-6 gap-2">
-        <button type="button" id="cancelPayment" class="button button-danger px-4 py-2 rounded">ثبت فاکتور بدون پرداخت</button>
-        <button type="submit" class="button button-primary px-4 py-2 rounded">ثبت پرداخت‌ها</button>
+        <button type="button" id="cancelPayment" class="button secondary px-4 py-2 rounded">ثبت فاکتور بدون پرداخت</button>
+        <button type="submit" class="button primary px-4 py-2 rounded">ثبت پرداخت‌ها</button>
       </div>
     </form>
   </div>
@@ -131,7 +131,6 @@ let paymentMethods = [], banks = [];
 let invoiceTotalAmount = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
-    // بارگذاری داده‌های پرداخت و بانک
     fetch("{% url 'get_payment_data' %}")
         .then(res => res.json())
         .then(data => {
@@ -146,13 +145,10 @@ document.addEventListener("DOMContentLoaded", () => {
             formatNumber(this);
             invoiceTotalAmount = parseFloat(this.value.replace(/,/g, '')) || 0;
             updatePaymentAmounts();
-            
         });
         formatNumber(totalAmountField);
-        
     }
 
-    // Select2 تغییر پرسنل
     const personnelSelect = document.getElementById('id_personnel');
     if (personnelSelect) {
         personnelSelect.addEventListener('change', function() {
@@ -162,7 +158,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 workSelect.innerHTML = '<option value="" selected>- انتخاب خدمت -</option>';
                 return;
             }
-
             fetch("{% url 'personnel_works' %}?personnel_id=" + personnelId)
                 .then(res => res.json())
                 .then(data => {
@@ -178,12 +173,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // اضافه کردن ردیف پرداخت
     document.getElementById('addRow').addEventListener('click', function() {
         addPaymentRow(true);
     });
 
-    // ثبت فاکتور
     document.getElementById('saleForm').addEventListener("submit", function(e) {
         e.preventDefault();
         const formData = new FormData(this);
@@ -202,7 +195,6 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .then(res => res.json())
         .then(data => {
-          console.log("response data:", data);
             if (data.sale_id) {
                 document.getElementById('saleId').value = data.sale_id;
                 openModal();
@@ -210,7 +202,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // ثبت پرداخت‌ها
     document.getElementById('paymentForm').addEventListener("submit", function(e) {
         e.preventDefault();
         const saleId = document.getElementById('saleId').value;
@@ -249,7 +240,17 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // مودال پرداخت
+    // ثبت فاکتور بدون پرداخت
+    document.getElementById('cancelPayment').addEventListener('click', function() {
+        const modal = document.getElementById("paymentModal");
+        modal.classList.add('hidden');
+            const priceField = document.getElementById('id_price');
+    if(priceField) {
+        priceField.value = priceField.value.replace(/,/g, '');
+    }
+        document.getElementById('saleForm').submit();
+    });
+
     function openModal() {
         const modal = document.getElementById("paymentModal");
         modal.classList.remove("hidden");
@@ -335,9 +336,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-
-
-    // مودال تصاویر
     const container = document.getElementById("imageContainer");
     const addBtn = document.getElementById("addCardBtn");
     const imageModal = document.getElementById("imageModal");
