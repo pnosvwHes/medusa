@@ -1234,12 +1234,7 @@ class CalendarView(ListView):
         context['appointments'] = Appointment.objects.select_related('customer', 'personnel', 'work').all()
 
         return context
-import logging
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-from app.models import Appointment
-from app.sms import customer_sms, personnel_sms, send_sms
-from django.utils import timezone
+
 
 logger = logging.getLogger(__name__)
 
@@ -1300,23 +1295,23 @@ def create_appointment(request):
             logger.info("Appointment created successfully", extra={"appointment_id": appointment.id, "user": getattr(request.user, "id", None)})
 
             # ارسال پیامک به مشتری
-            customer_mobile = appointment.customer.mobile
-            customer_name = appointment.customer.fname
-            customer_l_name = appointment.customer.lname
-            customer_full_name = f"{customer_name} {customer_l_name}"
-            work = appointment.work.work_name
-            appointment_time = appointment.start_time
-            personnel_name = appointment.personnel.fname
+            # customer_mobile = appointment.customer.mobile
+            # customer_name = appointment.customer.fname
+            # customer_l_name = appointment.customer.lname
+            # customer_full_name = f"{customer_name} {customer_l_name}"
+            # work = appointment.work.work_name
+            # appointment_time = appointment.start_time
+            # personnel_name = appointment.personnel.fname
 
-            customer_msg = customer_sms(customer_name, work, appointment_time)
-            send_sms(customer_mobile, customer_msg)
-            logger.info(f"SMS sent to customer {customer_id}", extra={"appointment_id": appointment.id})
+            # customer_msg = customer_sms(customer_name, work, appointment_time)
+            # send_sms(customer_mobile, customer_msg)
+            # logger.info(f"SMS sent to customer {customer_id}", extra={"appointment_id": appointment.id})
 
-            # ارسال پیامک به پرسنل
-            personnel_mobile = appointment.personnel.mobile
-            personnel_msg = personnel_sms(personnel_name, customer_full_name, appointment_time)
-            send_sms(personnel_mobile, personnel_msg)
-            logger.info(f"SMS sent to personnel {personnel_id}", extra={"appointment_id": appointment.id})
+            # # ارسال پیامک به پرسنل
+            # personnel_mobile = appointment.personnel.mobile
+            # personnel_msg = personnel_sms(personnel_name, customer_full_name, appointment_time)
+            # send_sms(personnel_mobile, personnel_msg)
+            # logger.info(f"SMS sent to personnel {personnel_id}", extra={"appointment_id": appointment.id})
 
             return JsonResponse({
                 'status': 'success',
@@ -1689,6 +1684,7 @@ class HomeDashboardView(TemplateView):
         print(daily_appts.__len__)
         appt_chart = []
         for row in daily_appts:
+            day_str = str(row["day"])
             day_date = gdatetime.strptime(day_str, "%Y-%m-%d").date()
             print (day_date)
             appt_chart.append({
