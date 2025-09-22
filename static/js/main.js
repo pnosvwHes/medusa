@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
     autoClose: true,
     initialValue: false,
   });
-
+  
   // Select2
   $("select").select2({
     theme: "tailwindcss-3",

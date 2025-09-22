@@ -192,8 +192,7 @@ class SaleListView(ListView):
                     Sale.objects.filter(date__gte=start_datetime, date__lt=end_datetime)
                     .order_by("-date")
                 )
-                print(sales.__len__)
-                print(target_date)  
+
                 logger.info(
                     "Admin viewed sales list",
                     extra={
@@ -715,6 +714,8 @@ class PayListView(ListView):
         from_date_str = self.request.GET.get("from_date")
         to_date_str = self.request.GET.get("to_date")
 
+
+
         from_date = default_from
         to_date = default_to
 
@@ -730,7 +731,7 @@ class PayListView(ListView):
                            "input_date": from_date_str,
                            "error": str(e)},
                 )
-
+        
         # تبدیل تاریخ پایان
         if to_date_str:
             try:
@@ -743,6 +744,7 @@ class PayListView(ListView):
                            "input_date": to_date_str,
                            "error": str(e)},
                 )
+
 
         qs = qs.filter(date__range=[from_date, to_date])
         self.from_date = from_date
@@ -783,7 +785,7 @@ class PayListView(ListView):
         context["banks_json"] = json.dumps(
             [{"id": b.id, "name": b.name} for b in Bank.objects.all()]
         )
-
+        
         return context
 
 
@@ -1526,7 +1528,7 @@ def gallery_view(request):
 
     # فیلتر بر اساس پرسنل (برای ادمین)
     personnel_filter = request.GET.get('personnel')
-    print(personnel_filter)
+    
     
     if personnel_filter and request.user.is_superuser:
         images = images.filter(sale__personnel__id=personnel_filter)
@@ -1681,12 +1683,12 @@ class HomeDashboardView(TemplateView):
             .annotate(count=Count("id"))
             .order_by("day")
         )
-        print(daily_appts.__len__)
+        
         appt_chart = []
         for row in daily_appts:
             day_str = str(row["day"])
             day_date = gdatetime.strptime(day_str, "%Y-%m-%d").date()
-            print (day_date)
+            
             appt_chart.append({
                 "date": jdatetime.date.fromgregorian(date=day_date).strftime("%Y-%m-%d"),
                 "count": row["count"]
