@@ -64,7 +64,9 @@ def english_to_persian(s: str) -> str:
 
 
 def jalali_to_gregorian(jalali_str: str) -> date:
-
+    
     jalali_str = persian_to_english(jalali_str)
-    y, m, d = map(int, jalali_str.split("/"))
-    return jdatetime.date(y, m, d).togregorian()
+    parts = list(map(int, jalali_str.split("-")))
+    date_val = jdatetime.date(parts[0], parts[1], parts[2]).togregorian()
+    
+    return date_val

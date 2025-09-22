@@ -1,16 +1,23 @@
 {% extends "app/base.html" %}
 
 {% block content %}
+<h1 class="text-2xl font-bold mb-6">حذف مشتری</h1>
 
-    <h1>حذف فاکتور</h1>
-    <p>آیا از حذف مشتری با مشخصات زیر اطمینان دارید ؟<br>
-        نام : {{customer.name}}<br>
-        موبایل :{{customer.mobile}}
-    </p>
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">ذخیره</button>
-    </form>
-    <a href="{% url 'home' %}">کنسل</a>
-{% endblock content %}
+<div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-6">
+    <p class="mb-2">آیا مطمئن هستید که می‌خواهید این مشتری را حذف کنید؟</p>
+    <ul class="list-disc pr-6">
+        <li><strong>نام:</strong> {{ customer.name }}</li>
+        <li><strong>موبایل:</strong> {{ customer.mobile }}</li>
+    </ul>
+</div>
+
+<form method="POST" class="flex items-center gap-4">
+    {% csrf_token %}
+    <button type="submit" class="button primary bg-red-600 hover:bg-red-700">
+        حذف
+    </button>
+    <a href="{% url 'customers' %}" class="button secondary">
+        انصراف
+    </a>
+</form>
+{% endblock %}

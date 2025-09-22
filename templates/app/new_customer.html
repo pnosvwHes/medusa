@@ -3,18 +3,7 @@
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">ثبت مشتری جدید</h1>
 
-<form method="POST" enctype="multipart/form-data" class="form-data mb-6">
-    {% csrf_token %}
-    <div class="flex items-center gap-4">
-        <!-- فایل واقعی مخفی -->
-        <input type="file" name="excel_file" id="excel_file" class="hidden">
-        <!-- دکمه نمایشی -->
-        <label for="excel_file" class="button secondary cursor-pointer">
-            انتخاب فایل اکسل
-        </label>
-        <button type="submit" name="import_excel" class="button secondary">خواندن از اکسل</button>
-    </div>
-</form>
+
 <!-- فرم ثبت تک‌تک مشتری -->
 <form method="POST" class="form-data">
     {% csrf_token %}

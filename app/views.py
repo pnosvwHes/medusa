@@ -308,88 +308,54 @@ class SaleDeleteView(DeleteView):
         )
         return response
 
-
-
-
 class CustomerCreateView(CreateView):
     template_name = "app/new_customer.html"
     form_class = CustomerForm
     success_url = reverse_lazy("customers")
 
     def post(self, request, *args, **kwargs):
-        if "import_excel" in request.POST and request.FILES.get("excel_file"):
-            excel_file = request.FILES["excel_file"]
+        data = request.POST.copy()
+        birth_day = data.get("birth_day")
+    
+        if birth_day:
+            
             try:
-                df = pd.read_excel(excel_file)
-                count = 0
-                for _, row in df.iterrows():
-                    Customer.objects.update_or_create(
-                        mobile=row["mobile"],
-                        defaults={"name": row["name"]},
-                    )
-                    count += 1
-
-                logger.info(
-                    "Customers imported from Excel",
-                    extra={
-                        "user": getattr(request.user, "id", None),
-                        "file_name": excel_file.name,
-                        "count": count,
-                    },
-                )
-
-                messages.success(request, "مشتریان با موفقیت از اکسل وارد شدند.")
-
+                
+                # اگر تاریخ شمسی بود، تبدیل به میلادی کن
+                greg_date = jalali_to_gregorian(birth_day)
+                
+                data["birth_day"] = greg_date.isoformat()
             except Exception as e:
-                logger.error(
-                    "Error importing customers from Excel",
-                    exc_info=True,
-                    extra={
-                        "user": getattr(request.user, "id", None),
-                        "file_name": excel_file.name,
-                    },
-                )
-                messages.error(request, f"خطا در وارد کردن فایل: {e}")
+                logger.warning("Invalid jalali date input: %s", birth_day)
+                messages.error(request, "فرمت تاریخ تولد معتبر نیست.")
 
-            return self.get(request, *args, **kwargs)
-
+        request.POST = data
         return super().post(request, *args, **kwargs)
 
     def form_valid(self, form):
-        response = super().form_valid(form)
-
+        customer = form.save()
+        messages.success(self.request, "مشتری با موفقیت ثبت شد.")
         logger.info(
-            "Customer created successfully",
-            extra={
-                "user": getattr(self.request.user, "id", None),
-                "customer_id": self.object.id,
-            },
+            "Customer created",
+            extra={"user": getattr(self.request.user, "id", None), "customer_id": customer.id},
         )
-
-        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
-            return JsonResponse({"customer_id": self.object.id})
-        return response
+        return super().form_valid(form)
 
     def form_invalid(self, form):
-        if self.request.user.is_authenticated:
-            logger.error(
-                "Authenticated user submitted invalid customer form",
-                extra={
-                    "user": getattr(self.request.user, "id", None),
-                    "errors": form.errors.as_json(),
-                },
-            )
-        else:
-            logger.warning(
-                "Anonymous user submitted invalid customer form",
-                extra={"errors": form.errors.as_json()},
-            )
+        messages.error(self.request, "فرم معتبر نیست. لطفاً مقادیر را بررسی کنید.")
+        logger.warning(
+            "Invalid customer form submitted",
+            extra={"user": getattr(self.request.user, "id", None)},
+        )
         return super().form_invalid(form)
+
+
+
 
 class CustomerUpdateView(UpdateView):
     template_name = "app/edit_customer.html"
     model = Customer
-    fields = ["name", "mobile", "black_list", "black_list_reason"]
+    fields = ["fname", "lname", "mobile", "black_list", "birth_day", "black_list_reason"]
     success_url = reverse_lazy("customers")
     context_object_name = "customer"
 
