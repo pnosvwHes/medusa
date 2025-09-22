@@ -53,7 +53,7 @@ class Personnel(BaseModel):
         return f"{self.fname} {self.lname}"
 
     def __str__(self):
-        return self.name()
+        return self.name
 
 
 class Customer(BaseModel):
