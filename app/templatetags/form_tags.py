@@ -2,6 +2,7 @@ from django import template
 from app.utils import is_admin
 register = template.Library()
 from num2fawords import words
+from jalali_date import datetime2jalali
 
 
 @register.filter(name='add_class')
@@ -23,3 +24,14 @@ def num2words_fa(value):
         return words(int(value))
     except (ValueError, TypeError):
         return ""
+
+
+
+@register.filter
+def to_jalali(value, fmt="%Y/%m/%d"):
+    if not value:
+        return ""
+    try:
+        return datetime2jalali(value).strftime(fmt)
+    except Exception:
+        return value

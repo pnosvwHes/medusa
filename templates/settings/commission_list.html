@@ -1,5 +1,7 @@
 {% extends "app/base.html" %}
+{% load jalali_tags %}
 {% block content %}
+
 <div class="max-w-6xl mx-auto p-6">
     <h1 class="text-2xl font-bold mb-6 text-center">کمیسیون پرسنل</h1>
 
@@ -34,8 +36,8 @@
                     <td class="p-3">{{ c.personnel }}</td>
                     <td class="p-3">{{ c.work }}</td>
                     <td class="p-3">{{ c.percentage }}%</td>
-                    <td class="p-3">{{ c.start_date }}</td>
-                    <td class="p-3">{{ c.end_date }}</td>
+                    <td>{{ c.start_date|to_jalali:"%Y/%m/%d" }}</td>
+                    <td>{{ c.end_date|to_jalali:"%Y/%m/%d" }}</td>
                     <td class="p-3">
                         <a href="{% url 'update_commission' c.id %}" class="text-blue-600 hover:underline">ویرایش</a> |
                         <a href="{% url 'delete_commission' c.id %}" class="text-red-600 hover:underline">حذف</a>

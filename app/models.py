@@ -2,7 +2,8 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 from django.utils import timezone
 from django.contrib.auth.models import User
-from django.contrib.auth.models import User
+import datetime
+from jalali_date import datetime2jalali
 
 class BaseModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
@@ -186,7 +187,7 @@ class Transaction(BaseModel):
     created_at = models.DateTimeField(auto_now_add=True)
 
     sale = models.ForeignKey(Sale, null=True, blank=True, on_delete=models.SET_NULL)
-
+    
     def __str__(self):
         return f"{self.transaction_type} - {self.source_type} - {self.amount} -{self.date}-{self.description}"
     
@@ -202,8 +203,20 @@ class PersonnelCommission(BaseModel):
         verbose_name = "کمیسیون پرسنل"
         verbose_name_plural = "کمیسیون‌ها"
 
+    def save(self, *args, **kwargs):
+        today = datetime.date.today()
+        jalali_year = datetime2jalali(today).year
+
+        if not self.start_date:
+            self.start_date = datetime.date(jalali_year - 621, 3, 21)
+        if not self.end_date:
+            self.end_date = datetime.date(jalali_year - 621 + 10, 3, 20)
+
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.personnel} - {self.work} ({self.percentage}%)"
+    
 
 
 class PersonnelUser(BaseModel):
@@ -235,7 +248,7 @@ class Appointment(BaseModel):
         return f"{self.customer.name} - {self.work.work_name} ({self.start_time})"
     
 
-from django.db import models
+
 
 # نوع پرداخت
 class PayType(BaseModel):

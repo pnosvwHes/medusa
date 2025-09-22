@@ -6,7 +6,7 @@ from app.models import *
 from django.views.generic import CreateView, ListView, UpdateView, DeleteView, TemplateView
 from django.contrib import messages
 from django.utils import timezone
-from jalali_date import datetime2jalali, date2jalali
+from jalali_date import datetime2jalali
 from django.db.models import Sum, F, Q, Count, Max, Min, DateField
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime as gdatetime, timedelta

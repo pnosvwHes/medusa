@@ -1,4 +1,6 @@
 {% extends "app/base.html" %}
+{% load jalali_tags %}
+
 {% block content %}
 <div class="max-w-lg mx-auto p-6 bg-white shadow-md rounded-xl">
     <h1 class="text-2xl font-bold mb-6 text-center">
@@ -7,7 +9,36 @@
 
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
+
+        <p>
+            {{ form.personnel.label_tag }}<br>
+            {{ form.personnel }}
+        </p>
+
+        <p>
+            {{ form.work.label_tag }}<br>
+            {{ form.work }}
+        </p>
+
+        <p>
+            {{ form.percentage.label_tag }}<br>
+            {{ form.percentage }}
+        </p>
+                {% if not object %}
+            <p class="text-gray-500 text-sm mb-2">
+                اگر تاریخ‌ها انتخاب نشوند، از اول سال جاری تا ۱۰ سال بعد اعمال می‌شود.
+            </p>
+        {% endif %}
+        <p>
+            {{ form.start_date.label_tag }}<br>
+            <input type="text" name="start_date" value="{{ form.start_date.value|to_jalali:"%Y/%m/%d" }}">
+        </p>
+
+        <p>
+            {{ form.end_date.label_tag }}<br>
+            <input type="text" name="end_date" value="{{ form.end_date.value|to_jalali:"%Y/%m/%d" }}">
+        </p>
+
         <div class="mt-6 flex justify-between">
             <a href="{% url 'commissions' %}" class="px-4 py-2 bg-gray-500 text-white rounded-lg">بازگشت</a>
             <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg">ذخیره</button>
@@ -15,3 +46,4 @@
     </form>
 </div>
 {% endblock %}
+
