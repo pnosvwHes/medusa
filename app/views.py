@@ -1689,6 +1689,7 @@ class HomeDashboardView(TemplateView):
         print(daily_appts.__len__)
         appt_chart = []
         for row in daily_appts:
+            day_date = gdatetime.strptime(day_str, "%Y-%m-%d").date()
             print (day_date)
             appt_chart.append({
                 "date": jdatetime.date.fromgregorian(date=day_date).strftime("%Y-%m-%d"),
