@@ -17,7 +17,6 @@
               <div class="md:w-2/3">
                 {% if field.name == 'price' %}
                   <input type="text" name="price" id="{{ field.id_for_label }}" class="form-input price-field" value="{{ field.value|default_if_none:''|intcomma }}">
-                  <small class="text-gray-500 price-in-words"></small>
                 {% else %}
                   {{ field|add_class:"form-input" }}
                 {% endif %}
@@ -89,40 +88,15 @@
   </div>
 </div>
 
-<!-- کتابخانه تبدیل عدد به حروف -->
-<script src="https://cdn.jsdelivr.net/npm/num2persian@latest/dist/num2persian.min.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    // تبدیل عدد به حروف
-    const priceFields = document.querySelectorAll(".price-field");
-    priceFields.forEach(input => {
-        const small = input.nextElementSibling; // assume small right after input
-
-        const updateWords = () => {
-            let val = input.value.replace(/,/g, '');
-            // اگر مقدار عددی معتبر باشد
-            if(val && !isNaN(val)) {
-                small.innerText = Num2persian.toWords(parseInt(val));
-            } else {
-                small.innerText = '';
-            }
-        }
-
-        // مقدار اولیه
-        updateWords();
-
-        // وقتی کاربر تایپ می‌کنه
-        input.addEventListener("input", () => {
-            // فرمت عدد با کاما
-            let numVal = input.value.replace(/,/g,'');
-            if(!isNaN(numVal) && numVal.length > 0){
-                input.value = parseInt(numVal).toLocaleString('en-US');
-            }
-            updateWords();
-        });
+   
+document.getElementById("saleForm").addEventListener("submit", function() {
+    document.querySelectorAll(".price-field").forEach(input => {
+        input.value = input.value.replace(/,/g, '');
     });
-
+});
     // مدیریت تصاویر
     const container = $("#imageContainer");
     const addBtn = $("#addCardBtn");

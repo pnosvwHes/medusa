@@ -87,6 +87,7 @@ class SaleCreateView(CreateView, UserTrackMixin):
         return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
+        
         context = super().get_context_data(**kwargs)
         current_time = timezone.now().astimezone(timezone.get_current_timezone())
         context["current_time"] = current_time.strftime("%H:%M")
@@ -101,6 +102,7 @@ class SaleUpdateView(UserTrackMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
         images = self.object.images.all()
         context["before_images"] = images.filter(image_type=SaleImage.BEFORE)
         context["after_images"] = images.filter(image_type=SaleImage.AFTER)
@@ -153,13 +155,11 @@ class SaleUpdateView(UserTrackMixin, UpdateView):
 
     def form_invalid(self, form):
         if self.request.user.is_authenticated:
-            logger.error(
-                "Authenticated user submitted invalid update sale form",
-                extra={
-                    "user": getattr(self.request.user, "id", None),
-                    "errors": form.errors.as_json(),
-                },
-            )
+           logger.error(
+                f"Invalid update sale form submitted by user={self.request.user.id}. "
+                f"errors={form.errors.as_json()}"
+)
+
         else:
             logger.warning(
                 "Anonymous user submitted invalid update sale form",

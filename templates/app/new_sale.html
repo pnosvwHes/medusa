@@ -149,6 +149,7 @@ document.addEventListener("DOMContentLoaded", () => {
         formatNumber(totalAmountField);
     }
 
+    // فیلتر خدمت بر اساس پرسنل
     const personnelSelect = document.getElementById('id_personnel');
     if (personnelSelect) {
         personnelSelect.addEventListener('change', function() {
@@ -240,15 +241,11 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // ثبت فاکتور بدون پرداخت
+    // ثبت فاکتور بدون پرداخت → فقط بستن مودال و انتقال به لیست
     document.getElementById('cancelPayment').addEventListener('click', function() {
         const modal = document.getElementById("paymentModal");
         modal.classList.add('hidden');
-            const priceField = document.getElementById('id_price');
-    if(priceField) {
-        priceField.value = priceField.value.replace(/,/g, '');
-    }
-        document.getElementById('saleForm').submit();
+        window.location.href = "{% url 'sales' %}";
     });
 
     function openModal() {
@@ -318,7 +315,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         amountInput.addEventListener('input', function() { 
             formatNumber(this); 
-            updatePriceWords();
         });
     }
 
