@@ -139,16 +139,22 @@ class CustomUserCreationForm(forms.ModelForm):
         return cleaned_data
     
     def save(self, commit=True):
-        user = super().save(commit=commit)
-        personnel = self.cleaned_data.get("personnel")
-        is_admin = self.cleaned_data.get("is_admin", False)
+        user = super().save(commit=False)  # همیشه commit=False
+        password = self.cleaned_data.get("password")
+        if password:
+            user.set_password(password)
 
-        if personnel:
-            PersonnelUser.objects.create(
-                personnel=personnel,
-                user=user,
-                is_admin=is_admin
-            )
+        if commit:
+            user.save()
+
+            personnel = self.cleaned_data.get("personnel")
+            is_admin = self.cleaned_data.get("is_admin", False)
+            if personnel:
+                PersonnelUser.objects.create(
+                    personnel=personnel,
+                    user=user,
+                    is_admin=is_admin
+                )
 
         return user
 

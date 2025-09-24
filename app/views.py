@@ -1122,12 +1122,7 @@ def create_user_view(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)  # ⚡ هش پسورد قبل از ذخیره
-            password = form.cleaned_data.get("password")
-            if password:
-                user.set_password(password)  # هش کردن پسورد
-            user.save()  # حالا کاربر را ذخیره کن
-            
+            user = form.save(commit=True)  # اینجا پسورد داخل form.save هندل میشه            
             messages.success(request, "کاربر با موفقیت ساخته شد.")
             logger.info(
                 "User created successfully",
@@ -2166,6 +2161,6 @@ def delete_user(request, user_id):
     if request.method == "POST":
         user.delete()
         messages.success(request, "کاربر با موفقیت حذف شد.")
-        return redirect('users_list')
+        return redirect('users')
     
     return render(request, "accounts/delete_user_confirm.html", {"user": user})
