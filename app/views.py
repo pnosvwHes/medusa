@@ -21,6 +21,9 @@ from django.db.models.functions import TruncDate
 from .sms import customer_sms, personnel_sms, send_sms
 import logging
 from django.db.models.functions import Cast
+from django.utils.dateparse import parse_date
+
+
 
 MAX_IMAGES = 4
 MAX_SIZE = (1024, 1024)  # طول یا عرض حداکثر
@@ -835,15 +838,9 @@ class ReceiptListView(ListView):
         )
         return context
 
-from django.utils.decorators import method_decorator
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.views.generic import ListView
-from django.utils import timezone
-from datetime import timedelta
-import jdatetime
-from app.models import Pay, Receipt, PaymentMethod, Bank
-from django.utils.dateparse import parse_date
-import logging
+
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -1353,12 +1350,7 @@ def appointment_list(request):
         logger.error("Failed to fetch appointment list", exc_info=True, extra={"user": getattr(request.user, "id", None), "personnel_id": personnel_id})
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-import logging
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from app.models import Appointment
+
 
 logger = logging.getLogger(__name__)
 
@@ -1456,11 +1448,6 @@ def personnel_works(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
-import logging
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from django.http import JsonResponse
-from app.models import SaleImage, Customer, Personnel, PersonnelUser
 
 logger = logging.getLogger(__name__)
 
