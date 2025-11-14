@@ -46,7 +46,11 @@ def home (request):
 
 logger = logging.getLogger("app")
 
-
+class DateFilterForm(forms.Form):
+    date = JalaliDateField(
+        required=False,
+        widget=AdminJalaliDateWidget
+    )
 class SaleCreateView(CreateView, UserTrackMixin):
     template_name = "app/new_sale.html"
     form_class = SaleForm
@@ -178,53 +182,65 @@ class SaleListView(ListView):
     template_name = "app/sale_list.html"
     model = Sale
     context_object_name = "sales"
-    
+
     def get_queryset(self):
-        selected_date_str = self.request.GET.get("date")
+        qs = Sale.objects.all()
+        request = self.request
+
+        # گرفتن تاریخ از فرم فیلتر
+        selected_date = request.GET.get("date")
 
         try:
-            if selected_date_str:
-                jalali_date = jdatetime.date.fromisoformat(selected_date_str)
-                target_date = jalali_date.togregorian()
+            if selected_date:
+                # تاریخ جلالی → میلادی
+                j_date = jdatetime.date.fromisoformat(selected_date)
+                target_date = j_date.togregorian()
             else:
                 target_date = timezone.now().date()
-            start_datetime = gdatetime.combine(target_date, gdatetime.min.time())
-            end_datetime = start_datetime + timedelta(days=1)
-            if self.request.user.is_superuser:
-                sales = (
-                    Sale.objects.filter(date__gte=start_datetime, date__lt=end_datetime)
-                    .order_by("-date")
-                )
+
+            start_dt = gdatetime.combine(target_date, gdatetime.min.time())
+            end_dt = start_dt + timedelta(days=1)
+
+            # دسترسی مدیر
+            if request.user.is_superuser:
+                qs = qs.filter(date__gte=start_dt, date__lt=end_dt).order_by("-date")
 
                 logger.info(
                     "Admin viewed sales list",
                     extra={
-                        "user": getattr(self.request.user, "id", None),
+                        "user": request.user.id,
                         "date": str(target_date),
-                        "count": sales.count(),
+                        "count": qs.count(),
                     },
                 )
+
+            # دسترسی پرسنل
             else:
-                personneluser = getattr(self.request.user, "personnel_profile", None)
-                personnel = personneluser.get_personnel() if personneluser else None
+                personnel_user = getattr(request.user, "personnel_profile", None)
+                personnel = personnel_user.get_personnel() if personnel_user else None
+
                 if personnel:
-                    sales = (
-                        Sale.objects.filter(date__gte=start_datetime, date__lt=end_datetime, personnel=personnel)
+                    qs = (
+                        qs.filter(
+                            date__gte=start_dt,
+                            date__lt=end_dt,
+                            personnel=personnel,
+                        )
                         .annotate(display_price=F("commission_amount"))
                         .order_by("-date")
                     )
+
                     logger.info(
                         "Personnel viewed their sales list",
                         extra={
-                            "user": getattr(self.request.user, "id", None),
+                            "user": request.user.id,
                             "personnel": personnel.id,
                             "date": str(target_date),
-                            "count": sales.count(),
+                            "count": qs.count(),
                         },
                     )
-              
 
-            return sales
+            return qs
 
         except Exception as e:
             logger.error(
@@ -232,33 +248,35 @@ class SaleListView(ListView):
                 exc_info=True,
                 extra={
                     "user": getattr(self.request.user, "id", None),
-                    "date_str": selected_date_str,
+                    "date_str": selected_date,
                 },
             )
             return Sale.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        today = timezone.now()
 
-        selected_date = self.request.GET.get("date")
-        if selected_date:
-            context["selected_jalali_date"] = selected_date
-            context["date_formatted"] = selected_date
+        # خواندن تاریخ از GET
+        selected = self.request.GET.get("date")
+
+        if selected:
+            context["selected_jalali_date"] = selected
+            context["date_formatted"] = selected
         else:
-            jalali_today_str = datetime2jalali(today).strftime("%Y-%m-%d")
-            context["selected_jalali_date"] = to_persian_numbers(jalali_today_str)
-            context["date_formatted"] = jalali_today_str
+            # اگر تاریخ نبود → جلالی امروز
+            today = timezone.now()
+            jalali_today = datetime2jalali(today).strftime("%Y-%m-%d")
+            context["selected_jalali_date"] = jalali_today
+            context["date_formatted"] = jalali_today
 
-        sales_today = self.get_queryset()
-        context["sales_today"] = sales_today
+        # کوئری اصلی که از نمایش استفاده شده
+        sales = context["sales"]
 
-        total_price = sales_today.aggregate(total=Sum("price"))["total"] or 0
-        total_commission = (
-            sales_today.aggregate(total=Sum("commission_amount"))["total"] or 0
+        # مجموع‌ها
+        context["total_price"] = sales.aggregate(total=Sum("price"))["total"] or 0
+        context["total_commission"] = (
+            sales.aggregate(total=Sum("commission_amount"))["total"] or 0
         )
-        context["total_price"] = total_price
-        context["total_commission"] = total_commission
 
         return context
 
