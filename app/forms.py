@@ -60,35 +60,6 @@ class SaleForm(forms.ModelForm):
 
 
 
-class TransactionForm(forms.ModelForm):
-
-    class Meta:
-        model = Transaction
-        fields = ['date','transaction_type', 'source_type', 'bank', 'amount', 'description']  # حذف date از اینجا
-        labels = {
-            'date': 'تاریخ',
-            'transaction_type': 'نوع تراکنش',
-            'source_type': 'از/به',
-            'bank': 'حساب بانکی',
-            'amount': 'مبلغ',
-            'description':'توضیحات'
-        }
-        widgets = {
-            'date': AdminJalaliDateWidget(attrs={'class': 'border p-2 rounded w-full'}),
-            'transaction_type': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
-            'source_type': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
-            'bank': forms.Select(attrs={'class': 'select2 border p-2 rounded w-full'}),
-            'amount': forms.NumberInput(attrs={'class': 'border p-2 rounded w-full'}),
-            'description': forms.Textarea(attrs={'class': 'border p-2 rounded w-full'}),
-        }
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        if commit:
-            instance.save()
-        return instance
-
-
 
 class PaymentMethodSelect(Select):
     def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):

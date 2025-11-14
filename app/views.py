@@ -99,7 +99,7 @@ class SaleCreateView(CreateView, UserTrackMixin):
 class SaleUpdateView(UserTrackMixin, UpdateView):
     template_name = "app/edit_sale.html"
     model = Sale
-    fields = ["customer", "personnel", "work", "price", "date"]
+    form_class = SaleForm 
     success_url = reverse_lazy("sales")
     context_object_name = "sale"
 

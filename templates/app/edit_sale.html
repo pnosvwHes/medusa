@@ -1,156 +1,75 @@
-{% extends "app/base.html" %}
-{% load humanize %}
+{% extends 'app/base.html' %}
+{% load static jalali_tags %}
+
 {% block content %}
-{% load form_tags %}
+<div class="max-w-2xl mx-auto bg-white shadow-lg rounded-2xl p-6 mt-6 border">
+    <h2 class="text-2xl font-bold mb-6 text-center text-gray-700">ویرایش فاکتور</h2>
 
-<div class="flex justify-center items-center min-h-screen form-data">
-  <div class="form-data w-full max-w-2xl mx-4">
-    <h1 class="text-2xl font-bold mb-6 text-center">ویرایش فاکتور</h1>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
 
-    <form method="POST" id="saleForm" enctype="multipart/form-data">
-      {% csrf_token %}
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {% for field in form %}
-          {% if field.name != 'date' and field.name != 'time' %}
-            <div class="flex flex-col md:flex-row md:items-center gap-2">
-              <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-              <div class="md:w-2/3">
-                {% if field.name == 'price' %}
-                  <input type="text" name="price" id="{{ field.id_for_label }}" class="form-input price-field" value="{{ field.value|default_if_none:''|intcomma }}">
-                {% else %}
-                  {{ field|add_class:"form-input" }}
-                {% endif %}
-                {% if field.errors %}
-                  <div class="form-error">{{ field.errors.0 }}</div>
-                {% endif %}
-              </div>
-            </div>
-          {% endif %}
-        {% endfor %}
-
-        <!-- تاریخ و ساعت -->
-        <div class="flex flex-col md:flex-row md:items-center gap-2 col-span-1 md:col-span-2">
-          <div class="flex-1 flex flex-col md:flex-row md:items-center gap-2">
-            <label for="{{ form.date.id_for_label }}" class="form-label">{{ form.date.label }}</label>
-            <div class="md:w-2/3">
-              {{ form.date|add_class:"form-input" }}
-              {% if form.date.errors %}
-                <div class="form-error">{{ form.date.errors.0 }}</div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-
-        <!-- عکس‌های فاکتور -->
-        <div class="col-span-1 md:col-span-2">
-          <label class="form-label mb-2">عکس‌های فاکتور</label>
-          <div id="imageContainer" class="grid grid-cols-2 gap-4 items-start">
-
-            <!-- کارت قبل -->
-            {% if before_images %}
-              <div class="relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer" data-type="before">
-                <span class="text-gray-400 mb-1">قبل</span>
-                <img class="w-full h-full object-cover rounded" src="{{ before_images.0.image.url }}"/>
-                <input type="file" accept="image/*" class="hidden imageInput" name="images_before">
-              </div>
-            {% else %}
-              <div class="relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer" data-type="before">
-                <span class="text-gray-400 mb-1">قبل</span>
-                <img class="w-full h-full object-cover rounded hidden"/>
-                <input type="file" accept="image/*" class="hidden imageInput" name="images_before">
-              </div>
+        <!-- مشتری -->
+        <div>
+            <label for="{{ form.customer.id_for_label }}" class="block mb-1 text-gray-700 font-semibold">مشتری</label>
+            {{ form.customer }}
+            {% if form.customer.errors %}
+                <p class="text-red-500 text-sm">{{ form.customer.errors }}</p>
             {% endif %}
-
-            <!-- کارت بعد -->
-            {% for img in after_images %}
-              <div class="relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer" data-type="after">
-                <span class="text-gray-400 mb-1">بعد</span>
-                <img class="w-full h-full object-cover rounded" src="{{ img.image.url }}"/>
-                <input type="file" accept="image/*" class="hidden imageInput" name="images_after">
-              </div>
-            {% endfor %}
-
-            <!-- کارت اضافه کردن عکس بعد -->
-            <div id="addCardBtn" class="flex items-center justify-center border border-gray-300 rounded h-32 text-gray-500 cursor-pointer text-2xl font-bold">
-              +
-            </div>
-
-          </div>
-          <p class="form-help">حداکثر ۴ کارت عکس مجاز است</p>
         </div>
 
-      </div>
+        <!-- پرسنل -->
+        <div>
+            <label for="{{ form.personnel.id_for_label }}" class="block mb-1 text-gray-700 font-semibold">پرسنل</label>
+            {{ form.personnel }}
+            {% if form.personnel.errors %}
+                <p class="text-red-500 text-sm">{{ form.personnel.errors }}</p>
+            {% endif %}
+        </div>
 
-      <div class="form-actions">
-        <button type="submit" class="button primary">ذخیره فاکتور</button>
-      </div>
+        <!-- خدمت -->
+        <div>
+            <label for="{{ form.work.id_for_label }}" class="block mb-1 text-gray-700 font-semibold">خدمت</label>
+            {{ form.work }}
+            {% if form.work.errors %}
+                <p class="text-red-500 text-sm">{{ form.work.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- مبلغ -->
+        <div>
+            <label for="{{ form.price.id_for_label }}" class="block mb-1 text-gray-700 font-semibold">مبلغ (تومان)</label>
+            {{ form.price }}
+            {% if form.price.errors %}
+                <p class="text-red-500 text-sm">{{ form.price.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- تاریخ شمسی -->
+        <div>
+            <label for="{{ form.date.id_for_label }}" class="block mb-1 text-gray-700 font-semibold">تاریخ</label>
+            {{ form.date }}
+            {% if form.date.errors %}
+                <p class="text-red-500 text-sm">{{ form.date.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- ساعت -->
+        <div>
+            <label for="{{ form.time.id_for_label }}" class="block mb-1 text-gray-700 font-semibold">ساعت</label>
+            {{ form.time }}
+            {% if form.time.errors %}
+                <p class="text-red-500 text-sm">{{ form.time.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- دکمه‌ها -->
+        <div class="flex justify-between items-center mt-6">
+            <a href="{% url 'sales' %}" class="text-gray-600 hover:text-gray-900 transition">بازگشت</a>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition">
+                ذخیره تغییرات
+            </button>
+        </div>
     </form>
-  </div>
 </div>
 
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-   
-document.getElementById("saleForm").addEventListener("submit", function() {
-    document.querySelectorAll(".price-field").forEach(input => {
-        input.value = input.value.replace(/,/g, '');
-    });
-});
-    // مدیریت تصاویر
-    const container = $("#imageContainer");
-    const addBtn = $("#addCardBtn");
-
-    function setupCard(card) {
-        const input = card.find("input");
-        const img = card.find("img");
-
-        card.on("click", e => {
-            const $t = $(e.target);
-            if ($t.is("input") || $t.is("img")) return;
-            input[0].click();
-        });
-
-        input.on("change", () => {
-            if(input[0].files.length > 0){
-                const file = input[0].files[0];
-                const reader = new FileReader();
-                reader.onload = e => { img.attr('src', e.target.result).removeClass('hidden'); };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        img.on("click", e => { e.stopPropagation(); window.open(img.attr('src'),'_blank'); });
-    }
-
-    container.children(".relative").each(function(){ setupCard($(this)); });
-
-    function updateAddButton(){
-        const afterCount = container.children("[data-type='after']").length;
-        addBtn.toggleClass("hidden", afterCount >= 3);
-    }
-
-    updateAddButton();
-
-    addBtn.on("click", () => {
-        const afterCount = container.children("[data-type='after']").length;
-        if(afterCount >= 3) return;
-        const newCard = $(`<div class="relative border border-gray-300 rounded p-2 flex flex-col items-center justify-center h-32 cursor-pointer" data-type="after">
-                                <span class="text-gray-400 mb-1">بعد</span>
-                                <img class="w-full h-full object-cover rounded hidden"/>
-                                <input type="file" accept="image/*" class="hidden imageInput" name="images_after">
-                            </div>`);
-        newCard.insertBefore(addBtn);
-        setupCard(newCard);
-        updateAddButton();
-    });
-});
-</script>
-
-<style>
-#imageContainer .relative { border: 2px dashed #ccc; border-radius: 0.5rem; position: relative; height: 160px; overflow: hidden; }
-#imageContainer .relative span { font-size: 1rem; }
-#imageContainer img { width: 100%; height: 100%; object-fit: cover; }
-.price-in-words { display: block; margin-top: 0.25rem; color: #555; font-size: 0.9rem; }
-</style>
 {% endblock %}

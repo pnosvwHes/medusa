@@ -83,6 +83,64 @@
         padding-bottom: 7rem; /* هم‌اندازه h-28 */
     }
 }
+/* فرم عمومی و زیبا */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+form label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+form input,
+form select,
+form textarea {
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    width: 100%;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+form input:focus,
+form select:focus,
+form textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px #bfdbfe;
+    outline: none;
+}
+
+form .errorlist {
+    color: #ef4444;
+    font-size: 0.875rem;
+}
+
+.form-card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    padding: 1.5rem;
+    max-width: 600px;
+    margin: 2rem auto;
+}
+
+.btn-primary {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    transition: background-color 0.2s;
+}
+.btn-primary:hover {
+    background-color: #1e40af;
+}
+
 </style>
 
 
@@ -213,7 +271,10 @@
 <script src="https://cdn.jsdelivr.net/npm/jalaali-js@1.2.6/dist/jalaali.js"></script>
 
 
-<script src="{% static 'js/main.js' %}"></script>
+<!-- 📅 فعال‌سازی دیت‌پیکر شمسی -->
+<link rel="stylesheet" href="{% static 'admin/css/widgets.css' %}">
+{{ form.media }}
+
 
 <script>
     feather.replace()
